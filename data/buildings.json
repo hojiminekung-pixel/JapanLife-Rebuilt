@@ -1,0 +1,14 @@
+[
+ {"id":"home","name":"บ้านมาชิยะ","type":"บ้าน","cost":80,"income":12,"xp":5,"capacity":2,"max_level":4,"color":"#b56b45"},
+ {"id":"tea","name":"ร้านชาเขียว","type":"ร้านค้า","cost":130,"income":22,"xp":9,"capacity":3,"max_level":4,"color":"#5f9f66"},
+ {"id":"ramen","name":"ร้านราเม็ง","type":"ร้านค้า","cost":190,"income":32,"xp":12,"capacity":4,"max_level":4,"color":"#d68245"},
+ {"id":"sushi","name":"ร้านซูชิ","type":"ร้านค้า","cost":260,"income":44,"xp":16,"capacity":5,"max_level":4,"color":"#e87575"},
+ {"id":"inn","name":"เรียวกัง","type":"ที่พัก","cost":350,"income":55,"xp":20,"capacity":8,"max_level":4,"color":"#8d73b6"},
+ {"id":"shrine","name":"ศาลเจ้า","type":"สถานที่เที่ยว","cost":420,"income":42,"xp":25,"capacity":12,"max_level":3,"color":"#b84d4d"},
+ {"id":"garden","name":"สวนเซน","type":"สถานที่เที่ยว","cost":300,"income":30,"xp":18,"capacity":10,"max_level":3,"color":"#659b73"},
+ {"id":"museum","name":"พิพิธภัณฑ์","type":"สถานที่เที่ยว","cost":600,"income":78,"xp":35,"capacity":15,"max_level":3,"color":"#5d85a8"},
+ {"id":"market","name":"ตลาดเช้า","type":"ร้านค้า","cost":500,"income":70,"xp":30,"capacity":9,"max_level":4,"color":"#d5a84c"},
+ {"id":"dojo","name":"โดโจ","type":"สถานที่เที่ยว","cost":460,"income":50,"xp":26,"capacity":11,"max_level":3,"color":"#78604d"},
+ {"id":"bakery","name":"ร้านขนมโมจิ","type":"ร้านค้า","cost":280,"income":38,"xp":15,"capacity":4,"max_level":4,"color":"#e7a7ba"},
+ {"id":"station","name":"สถานีรถไฟ","type":"คมนาคม","cost":750,"income":95,"xp":45,"capacity":20,"max_level":3,"color":"#687687"}
+]
