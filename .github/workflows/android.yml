@@ -15,6 +15,8 @@ jobs:
     env:
       GODOT_VERSION: 4.3
       GODOT_RELEASE: 4.3-stable
+      # firebelley/godot-export copies each preset into this sanitized directory.
+      APK_PATH: build/Android_Debug/JapanLifeRebuilt-debug.apk
     steps:
       - uses: actions/checkout@v4
 
@@ -67,7 +69,7 @@ jobs:
           test "$(wc -c < assets/fonts/NotoSansThai-Regular.ttf)" -gt 100000
 
       - name: Create APK output directory
-        run: mkdir -p build
+        run: mkdir -p "$(dirname "$APK_PATH")"
 
       - name: Export Android debug APK with Godot 4 export templates
         uses: firebelley/godot-export@v6.0.0
@@ -82,15 +84,15 @@ jobs:
 
       - name: Verify generated APK
         run: |
-          test -s build/JapanLifeRebuilt-debug.apk
-          unzip -t build/JapanLifeRebuilt-debug.apk
+          test -s ${{ env.APK_PATH }}
+          unzip -t ${{ env.APK_PATH }}
           # Godot regenerated the downloaded font import and packaged its font data.
           test -s assets/fonts/NotoSansThai-Regular.ttf.import
-          unzip -l build/JapanLifeRebuilt-debug.apk | grep -q "NotoSansThai-Regular.ttf.*fontdata"
+          unzip -l ${{ env.APK_PATH }} | grep -q "NotoSansThai-Regular.ttf.*fontdata"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: JapanLifeRebuilt-debug-apk
-          path: build/JapanLifeRebuilt-debug.apk
+          path: ${{ env.APK_PATH }}
           if-no-files-found: error
