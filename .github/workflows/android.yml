@@ -1,0 +1,129 @@
+name: Build Android APK
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-debug:
+    name: Export Android debug APK
+    runs-on: ubuntu-latest
+    env:
+      GODOT_VERSION: 4.3
+      GODOT_RELEASE: 4.3-stable
+      # The verified artifact is normalized to this deterministic path after export.
+      APK_PATH: build/JapanLifeRebuilt-debug.apk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Java required by Android tooling
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK command-line utilities
+        env:
+          ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+        run: |
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          curl --fail --location --retry 3 --retry-all-errors \
+            --output "$RUNNER_TEMP/android-commandline.zip" \
+            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q "$RUNNER_TEMP/android-commandline.zip" -d "$ANDROID_SDK_ROOT/cmdline-tools"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+
+      - name: Install required Android SDK components
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Configure Godot Android SDK paths
+        run: |
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.3.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "${ANDROID_SDK_ROOT}"
+          export/android/java_sdk_path = "${JAVA_HOME}"
+          EOF
+
+      - name: Download pinned Noto Sans Thai font for offline packaging
+        env:
+          # Immutable Google Fonts commit; OFL 1.1 font source.
+          NOTO_THAI_URL: https://raw.githubusercontent.com/google/fonts/23e54b51ddffbc7713c583748e3bd86f62b1fa4a/ofl/notosansthai/NotoSansThai%5Bwdth,wght%5D.ttf
+        run: |
+          mkdir -p assets/fonts
+          rm -f assets/fonts/NotoSansThai-Regular.ttf assets/fonts/NotoSansThai-Regular.ttf.import
+          curl --fail --location --retry 3 --retry-all-errors --output assets/fonts/NotoSansThai-Regular.ttf "$NOTO_THAI_URL"
+          test -s assets/fonts/NotoSansThai-Regular.ttf
+          # Reject an unexpectedly small HTTP error page or corrupt download.
+          test "$(wc -c < assets/fonts/NotoSansThai-Regular.ttf)" -gt 100000
+
+      - name: Export Android debug APK with Godot 4 export templates
+        uses: firebelley/godot-export@v6.0.0
+        with:
+          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+          relative_project_path: .
+          use_preset_export_path: true
+          export_debug: true
+          presets_to_export: Android Debug
+          verbose: true
+
+      - name: Discover, verify, and normalize generated APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "APK files under build after Godot export:"
+          find build -type f -name "*.apk" -print || true
+          echo "APK files in the workspace after Godot export:"
+          find . -type f -name "*.apk" -print
+
+          mapfile -d '' apk_files < <(find . -type f -name "*.apk" -print0)
+          if (( ${#apk_files[@]} == 0 )); then
+            echo "::error::Godot export completed but did not produce an APK."
+            exit 1
+          fi
+          if (( ${#apk_files[@]} > 1 )); then
+            printf '::error::Expected one APK, found %d:\n' "${#apk_files[@]}"
+            printf '  %s\n' "${apk_files[@]}"
+            exit 1
+          fi
+
+          APK_SOURCE_PATH="${apk_files[0]#./}"
+          echo "Discovered Godot APK: $APK_SOURCE_PATH"
+          test -s "$APK_SOURCE_PATH"
+          unzip -t "$APK_SOURCE_PATH"
+          # Godot must regenerate the downloaded font import and package its data.
+          test -s assets/fonts/NotoSansThai-Regular.ttf.import
+          unzip -l "$APK_SOURCE_PATH" | grep -q "NotoSansThai-Regular.ttf.*fontdata"
+
+          mkdir -p "$(dirname "$APK_PATH")"
+          cp "$APK_SOURCE_PATH" "$APK_PATH"
+          test -s "$APK_PATH"
+          echo "APK_SOURCE_PATH=$APK_SOURCE_PATH" >> "$GITHUB_ENV"
+          echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
+
+      - name: Verify normalized APK artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$APK_PATH"
+          unzip -t "$APK_PATH"
+          unzip -l "$APK_PATH" | grep -q "NotoSansThai-Regular.ttf.*fontdata"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JapanLifeRebuilt-debug-apk
+          path: ${{ env.APK_PATH }}
+          if-no-files-found: error
