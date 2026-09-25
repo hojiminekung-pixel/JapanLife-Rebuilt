@@ -16,3 +16,7 @@ The three changes total 12 bytes.
 
 ## Current server strategy
 The server logs every request and provides conservative acknowledgements for the recovered endpoint surface. Exact schemas are still being recovered from native response parsers; unknown endpoints return HTTP 501.
+
+
+## Font finding 2026-09-25
+The exact 1.5.12 native metadata confirms FONTPACK_ID 4 has two ranges: U+3130..U+32FF and U+0E00..U+0E7F. DetermineLanguage() already maps Thai into pack 4. Therefore changing the language classifier was unnecessary. The current A/B experiment swaps the order of those two verified ranges while preserving both ranges; no Unicode classifier code is modified.
