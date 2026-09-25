@@ -32,6 +32,9 @@ jobs:
           python3 tools/inspect_japanlife.py input/Japan-Life-v1-5-12.apk > output/original-inspection.json
           cat output/original-inspection.json
 
+      - name: Verify Thai glyph table
+        run: python3 tools/verify_thai_font.py input/Japan-Life-v1-5-12.apk
+
       - name: Patch APK
         run: |
           if [ "${{ inputs.patch_mode }}" = "thai-pack4-test" ]; then
