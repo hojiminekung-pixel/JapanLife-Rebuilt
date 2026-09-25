@@ -7,11 +7,14 @@ on:
         description: "Direct URL to the Japan Life v1.5.12 APK that you are authorized to modify"
         required: true
         type: string
-      experimental_fallback:
-        description: "Reproduce the old one-byte Thai fallback experiment (not a production fix)"
-        required: false
-        default: false
-        type: boolean
+      patch_mode:
+        description: "Patch mode"
+        required: true
+        default: "thai-pack4-test"
+        type: choice
+        options:
+          - thai-pack4-test
+          - historical-fallback-0
 
 jobs:
   build:
@@ -31,11 +34,10 @@ jobs:
 
       - name: Patch APK
         run: |
-          if [ "${{ inputs.experimental_fallback }}" = "true" ]; then
-            python3 tools/patch_japanlife.py input/Japan-Life-v1-5-12.apk               --experimental-fallback               -o output/Japan-Life-v1-5-12-experimental.apk
+          if [ "${{ inputs.patch_mode }}" = "thai-pack4-test" ]; then
+            python3 tools/patch_japanlife.py input/Japan-Life-v1-5-12.apk               --thai-pack4-test               -o output/Japan-Life-v1-5-12-thai-pack4-test.apk
           else
-            echo "Production patch not enabled yet; stopping intentionally." >&2
-            exit 1
+            python3 tools/patch_japanlife.py input/Japan-Life-v1-5-12.apk               --experimental-fallback               -o output/Japan-Life-v1-5-12-fallback0-test.apk
           fi
 
       - name: Install Android build tools
@@ -45,15 +47,27 @@ jobs:
 
       - name: Align and sign APK
         run: |
-          zipalign -f -p 4             output/Japan-Life-v1-5-12-experimental.apk             output/Japan-Life-v1-5-12-aligned.apk
+          if [ "${{ inputs.patch_mode }}" = "thai-pack4-test" ]; then
+            INPUT=output/Japan-Life-v1-5-12-thai-pack4-test.apk
+            NAME=Japan-Life-v1-5-12-thai-pack4-test
+          else
+            INPUT=output/Japan-Life-v1-5-12-fallback0-test.apk
+            NAME=Japan-Life-v1-5-12-fallback0-test
+          fi
+          zipalign -f -p 4 "$INPUT" "output/${NAME}-aligned.apk"
           keytool -genkeypair -v             -keystore output/test.keystore             -storepass android             -keypass android             -alias japanlife             -keyalg RSA -keysize 2048             -validity 10000             -dname "CN=Japan Life Test"
-          apksigner sign             --ks output/test.keystore             --ks-pass pass:android             --key-pass pass:android             --out output/Japan-Life-v1-5-12-test.apk             output/Japan-Life-v1-5-12-aligned.apk
+          apksigner sign             --ks output/test.keystore             --ks-pass pass:android             --key-pass pass:android             --out "output/${NAME}-signed.apk"             "output/${NAME}-aligned.apk"
 
       - name: Verify signature
-        run: apksigner verify --verbose output/Japan-Life-v1-5-12-test.apk
+        run: |
+          if [ "${{ inputs.patch_mode }}" = "thai-pack4-test" ]; then
+            apksigner verify --verbose output/Japan-Life-v1-5-12-thai-pack4-test-signed.apk
+          else
+            apksigner verify --verbose output/Japan-Life-v1-5-12-fallback0-test-signed.apk
+          fi
 
       - name: Upload APK and analysis
         uses: actions/upload-artifact@v4
         with:
-          name: japanlife-native-apk
+          name: japanlife-native-apk-${{ inputs.patch_mode }}
           path: output/
