@@ -10,11 +10,10 @@ on:
       patch_mode:
         description: "Patch mode"
         required: true
-        default: "thai-pack4-test"
+        default: "thai-pack4-range"
         type: choice
         options:
-          - thai-pack4-test
-          - historical-fallback-0
+          - thai-pack4-range
 
 jobs:
   build:
@@ -50,24 +49,15 @@ jobs:
 
       - name: Align and sign APK
         run: |
-          if [ "${{ inputs.patch_mode }}" = "thai-pack4-test" ]; then
-            INPUT=output/Japan-Life-v1-5-12-thai-pack4-test.apk
-            NAME=Japan-Life-v1-5-12-thai-pack4-test
-          else
-            INPUT=output/Japan-Life-v1-5-12-fallback0-test.apk
-            NAME=Japan-Life-v1-5-12-fallback0-test
-          fi
+          INPUT=output/Japan-Life-v1-5-12-thai-pack4-range-unsigned.apk
+          NAME=Japan-Life-v1-5-12-thai-pack4-range
           zipalign -f -p 4 "$INPUT" "output/${NAME}-aligned.apk"
           keytool -genkeypair -v             -keystore output/test.keystore             -storepass android             -keypass android             -alias japanlife             -keyalg RSA -keysize 2048             -validity 10000             -dname "CN=Japan Life Test"
           apksigner sign             --ks output/test.keystore             --ks-pass pass:android             --key-pass pass:android             --out "output/${NAME}-signed.apk"             "output/${NAME}-aligned.apk"
 
       - name: Verify signature
         run: |
-          if [ "${{ inputs.patch_mode }}" = "thai-pack4-test" ]; then
-            apksigner verify --verbose output/Japan-Life-v1-5-12-thai-pack4-test-signed.apk
-          else
-            apksigner verify --verbose output/Japan-Life-v1-5-12-fallback0-test-signed.apk
-          fi
+          apksigner verify --verbose output/Japan-Life-v1-5-12-thai-pack4-range-signed.apk
 
       - name: Upload APK and analysis
         uses: actions/upload-artifact@v4
