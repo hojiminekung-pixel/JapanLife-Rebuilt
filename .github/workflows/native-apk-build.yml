@@ -4,63 +4,66 @@ on:
   workflow_dispatch:
     inputs:
       apk_url:
-        description: "Direct URL to the Japan Life v1.5.12 APK that you are authorized to modify"
+        description: "Direct URL to the Japan Life v1.5.12 APK"
         required: true
         type: string
-      patch_mode:
-        description: "Patch mode"
+      mode:
+        description: "Build mode"
         required: true
-        default: "thai-pack4-range"
+        default: "offline-fix"
         type: choice
         options:
+          - offline-fix
           - thai-pack4-range
+      server_url:
+        description: "Optional replacement API base, e.g. http://10.0.2.2:8080/json"
+        required: false
+        default: ""
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Download original APK
         run: |
           mkdir -p input output
           curl -fL --retry 3 "${{ inputs.apk_url }}" -o input/Japan-Life-v1-5-12.apk
-
-      - name: Inspect original APK
+      - name: Verify baseline
         run: |
           python3 tools/inspect_japanlife.py input/Japan-Life-v1-5-12.apk > output/original-inspection.json
-          cat output/original-inspection.json
-
-      - name: Verify Thai glyph table
-        run: python3 tools/verify_thai_font.py input/Japan-Life-v1-5-12.apk
-
-      - name: Patch APK
+          python3 tools/verify_thai_font.py input/Japan-Life-v1-5-12.apk
+      - name: Apply patch
+        env:
+          MODE: ${{ inputs.mode }}
+          SERVER_URL: ${{ inputs.server_url }}
         run: |
-          if [ "${{ inputs.patch_mode }}" = "thai-pack4-test" ]; then
-            python3 tools/patch_japanlife.py input/Japan-Life-v1-5-12.apk               --thai-pack4-test               -o output/Japan-Life-v1-5-12-thai-pack4-test.apk
+          if [ "$MODE" = "offline-fix" ]; then
+            python3 tools/patch_offline_fix.py input/Japan-Life-v1-5-12.apk -o output/Japan-Life-1.5.12-OFFLINE-FIX-unsigned.apk
           else
-            python3 tools/patch_japanlife.py input/Japan-Life-v1-5-12.apk               --experimental-fallback               -o output/Japan-Life-v1-5-12-fallback0-test.apk
+            python3 tools/patch_japanlife.py input/Japan-Life-v1-5-12.apk -o output/Japan-Life-1.5.12-thai-pack4-unsigned.apk
           fi
-
+          if [ -n "$SERVER_URL" ]; then
+            IN=$(ls output/*unsigned.apk | head -1)
+            OUT=${IN%-unsigned.apk}-server-unsigned.apk
+            python3 tools/patch_server_endpoint.py "$IN" "$OUT" --server "$SERVER_URL"
+            rm "$IN"
+          fi
       - name: Install Android build tools
         uses: android-actions/setup-android@v4
         with:
           packages: "platform-tools build-tools;35.0.0"
-
       - name: Align and sign APK
         run: |
-          INPUT=output/Japan-Life-v1-5-12-thai-pack4-range-unsigned.apk
-          NAME=Japan-Life-v1-5-12-thai-pack4-range
+          INPUT=$(ls output/*unsigned.apk | head -1)
+          NAME=$(basename "$INPUT" .apk)
           zipalign -f -p 4 "$INPUT" "output/${NAME}-aligned.apk"
-          keytool -genkeypair -v             -keystore output/test.keystore             -storepass android             -keypass android             -alias japanlife             -keyalg RSA -keysize 2048             -validity 10000             -dname "CN=Japan Life Test"
-          apksigner sign             --ks output/test.keystore             --ks-pass pass:android             --key-pass pass:android             --out "output/${NAME}-signed.apk"             "output/${NAME}-aligned.apk"
-
-      - name: Verify signature
-        run: |
-          apksigner verify --verbose output/Japan-Life-v1-5-12-thai-pack4-range-signed.apk
-
-      - name: Upload APK and analysis
+          keytool -genkeypair -v -keystore output/test.keystore -storepass android -keypass android -alias japanlife -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Japan Life Test"
+          apksigner sign --ks output/test.keystore --ks-pass pass:android --key-pass pass:android --out "output/${NAME}-signed.apk" "output/${NAME}-aligned.apk"
+          apksigner verify --verbose "output/${NAME}-signed.apk"
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: japanlife-native-apk-${{ inputs.patch_mode }}
+          name: japanlife-native-apk-${{ inputs.mode }}
           path: output/
