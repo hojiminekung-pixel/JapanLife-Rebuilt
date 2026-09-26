@@ -16,6 +16,7 @@ on:
           - offline-fix
           - thai-pack4-baseline
           - font-runtime-diagnostics
+          - font-internal-cache
       server_url:
         description: "Optional replacement API base, e.g. http://10.0.2.2:8080/json"
         required: false
