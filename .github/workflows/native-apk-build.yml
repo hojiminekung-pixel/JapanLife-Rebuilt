@@ -15,6 +15,7 @@ on:
         options:
           - offline-fix
           - thai-pack4-baseline
+          - font-runtime-diagnostics
       server_url:
         description: "Optional replacement API base, e.g. http://10.0.2.2:8080/json"
         required: false
@@ -40,7 +41,10 @@ jobs:
           MODE: ${{ inputs.mode }}
           SERVER_URL: ${{ inputs.server_url }}
         run: |
-          if [ "$MODE" = "offline-fix" ]; then
+          if [ "$MODE" = "font-runtime-diagnostics" ]; then
+            python3 tools/analyze_font_runtime.py input/Japan-Life-v1-5-12.apk -o output/font-runtime-diagnostics.json
+            cp input/Japan-Life-v1-5-12.apk output/Japan-Life-1.5.12-font-runtime-baseline.apk
+          elif [ "$MODE" = "offline-fix" ]; then
             python3 tools/patch_offline_fix.py input/Japan-Life-v1-5-12.apk -o output/Japan-Life-1.5.12-OFFLINE-FIX-unsigned.apk
           else
             python3 tools/patch_japanlife.py input/Japan-Life-v1-5-12.apk -o output/Japan-Life-1.5.12-thai-pack4-baseline-unsigned.apk
@@ -57,6 +61,7 @@ jobs:
           packages: "platform-tools build-tools;35.0.0"
       - name: Align and sign APK
         run: |
+          if [ "$MODE" = "font-runtime-diagnostics" ]; then exit 0; fi
           INPUT=$(ls output/*unsigned.apk | head -1)
           NAME=$(basename "$INPUT" .apk)
           zipalign -f -p 4 "$INPUT" "output/${NAME}-aligned.apk"
