@@ -14,7 +14,7 @@ on:
         type: choice
         options:
           - offline-fix
-          - thai-pack4-range
+          - thai-pack4-baseline
       server_url:
         description: "Optional replacement API base, e.g. http://10.0.2.2:8080/json"
         required: false
@@ -34,6 +34,7 @@ jobs:
         run: |
           python3 tools/inspect_japanlife.py input/Japan-Life-v1-5-12.apk > output/original-inspection.json
           python3 tools/verify_thai_font.py input/Japan-Life-v1-5-12.apk
+          python3 tools/analyze_font_pack.py input/Japan-Life-v1-5-12.apk -o output/font-pack-diagnostics.json
       - name: Apply patch
         env:
           MODE: ${{ inputs.mode }}
@@ -42,7 +43,7 @@ jobs:
           if [ "$MODE" = "offline-fix" ]; then
             python3 tools/patch_offline_fix.py input/Japan-Life-v1-5-12.apk -o output/Japan-Life-1.5.12-OFFLINE-FIX-unsigned.apk
           else
-            python3 tools/patch_japanlife.py input/Japan-Life-v1-5-12.apk -o output/Japan-Life-1.5.12-thai-pack4-unsigned.apk
+            python3 tools/patch_japanlife.py input/Japan-Life-v1-5-12.apk -o output/Japan-Life-1.5.12-thai-pack4-baseline-unsigned.apk
           fi
           if [ -n "$SERVER_URL" ]; then
             IN=$(ls output/*unsigned.apk | head -1)
