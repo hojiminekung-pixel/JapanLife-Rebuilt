@@ -1,0 +1,8 @@
+{
+  "protocol": "japanlife-patch-v1",
+  "game": "com.nubee.japanlife",
+  "base_version": "1.5.12",
+  "server_version": "0.1.0",
+  "status": "development",
+  "patches": []
+}
