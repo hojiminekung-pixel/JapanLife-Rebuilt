@@ -1,5 +1,5 @@
 -- Japan Life Server: authentication + manual approval
--- Owner account: bomsronthai@gmail.com
+-- Owner accounts: bomsronthai@gmail.com, hojiminekung@gmail.com
 -- Run this in a new Supabase project's SQL Editor.
 
 create table if not exists public.profiles (
@@ -61,15 +61,15 @@ begin
     new.id,
     lower(new.email),
     case
-      when lower(new.email) = 'bomsronthai@gmail.com' then 'owner'
+      when lower(new.email) in ('bomsronthai@gmail.com', 'hojiminekung@gmail.com') then 'owner'
       else 'player'
     end,
     case
-      when lower(new.email) = 'bomsronthai@gmail.com' then 'approved'
+      when lower(new.email) in ('bomsronthai@gmail.com', 'hojiminekung@gmail.com') then 'approved'
       else 'pending'
     end,
     case
-      when lower(new.email) = 'bomsronthai@gmail.com' then now()
+      when lower(new.email) in ('bomsronthai@gmail.com', 'hojiminekung@gmail.com') then now()
       else null
     end
   )
