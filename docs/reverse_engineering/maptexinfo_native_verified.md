@@ -1,75 +1,98 @@
-# maptexinfo.smf — native-verified reverse-engineering checkpoint
+# maptexinfo.smf — native reconstruction checkpoint
 
 Date: 2026-09-26
 
 ## Baseline
 
-The verified Japan Life 1.5.12 APK contains `res/raw/maptexinfo.smf` with:
+Verified Japan Life 1.5.12 APK:
 
-- file size: 662,615 bytes
-- first uint32 (little-endian): 235
-- next 235 * 32 bytes: SHA-256 table
-- geometry/descriptor stream starts at offset 7,524
-- the 235 SHA-256 entries match the decompressed mapdata000..mapdata234 payloads
+- `res/raw/maptexinfo.smf`: 662,615 bytes
+- first uint32: 235
+- 235 * 32-byte SHA-256 table
+- descriptor source starts at offset 7,524
+- 235 hashes match the decompressed `mapdata000..mapdata234` payloads
 
-## Native-code findings
+## Native format recovered
 
-Static analysis of `libKyotoLife.so` is now being used as the authoritative format reference.
+ARMv7 Thumb tracing of `CObjectDataManager::Initialize()` gives the runtime descriptor format:
 
-### CObjTexManager::LoadMapData(int)
+- 2 bytes: `field_02`, `field_03`
+- 1 signed byte: coordinate-count encoding
+- native stores that byte as u16 and logically shifts right by 1
+- then reads `count/2` pairs of signed 16-bit `(x,y)`
+- then reads a 32-bit mapdata-relative payload offset
 
-The native loader:
+The runtime table contains exactly **4,685 SObjDisplay slots** (stride 0x2c / 44 bytes).
 
-1. reads a mapdata resource,
-2. decompresses it,
-3. calculates SHA-256,
-4. compares it against `CObjectDataManager::GetObjDisplayHashChecksum(mapIndex)`,
-5. stores the decompressed mapdata buffer for texture lookup.
+## Breakthrough: the APK contains the complete source descriptor stream
 
-This confirms the first 235 hashes in maptexinfo are the mapdata validation table.
+The packaged descriptor region is **not missing**. It is a legacy/expanded serialization of the same 4,685 descriptors.
 
-### CObjectDataManager::GetObjDisplay(EMAPTEX)
+Using the legacy boundary rule:
 
-The native lookup uses a table of `SObjDisplay` entries with a stride of 0x2c (44 bytes). The lookup key is an `EMAPTEX` value.
+`legacy_record_size = 7 + 4 * legacy_point_count`
 
-This means the maptexinfo stream is not itself a simple 103-byte-per-entry table.
+the complete stream parses exactly:
 
-### CObjTexManager::GetTexture(SObjDisplay&)
+- 3,338 records from offset 7,524 to 459,626
+- 1,347 records from 459,626 to 662,615
+- total: **4,685 records**
+- no trailing bytes
 
-The native texture loader confirms:
+The repeated `01 01 18` sequence is therefore a scan signature inside this stream, not a fixed 103-byte semantic record.
 
-- `SObjDisplay + 0x00`: EMAPTEX identifier.
-- `SObjDisplay + 0x08`: pointer to an array of 2D coordinates used during texture/object rendering.
-- `SObjDisplay + 0x0c`: offset into the selected decompressed mapdata payload for map-backed textures.
-- `SObjDisplay + 0x24`: coordinate-count field used to iterate the coordinate array.
-- `SObjDisplay + 0x26`: texture-cache slot/index.
-- For EMAPTEX values above the packed-texture threshold, the native code selects a mapdata index using integer division by 20 and then reads the texture payload at the per-display offset.
+### Conversion rule
 
-The packed-texture path and mapdata-backed path are therefore distinct.
+Each legacy record stores twice as many coordinate bytes as the 1.5.12 native loader consumes.
 
-## Important correction to the previous checkpoint
+For each record:
 
-The earlier workspace report described the repeated `01 01 18` byte pattern as a fixed 103-byte record family.
+1. preserve the two flag bytes;
+2. preserve the legacy count byte;
+3. keep only the **first half** of the legacy coordinate bytes;
+4. move the original final 32-bit payload offset immediately after those coordinates.
 
-Native-code tracing shows that this is **not safe to treat as the semantic record boundary**. The byte pattern occurs inside the variable-length descriptor stream. It should be retained only as a scan signature until the complete native parser is reconstructed.
+This produces:
 
-The 103-byte occurrences remain useful for correlation, but they must not be used to rewrite texture mappings by themselves.
+`native_record_size = 7 + 2 * legacy_point_count`
 
-## Next reconstruction layer
+No speculative values are introduced.
 
-1. Reconstruct the complete variable-length maptexinfo descriptor parser from `CObjectDataManager::Initialize()`.
-2. Recover the actual object-display count and descriptor boundaries from the native initialization path.
-3. Decode every EMAPTEX entry into:
-   - EMAPTEX id
-   - coordinate count
-   - coordinate list
-   - mapdata index/texture source
-   - payload offset
-   - cache index
-4. Cross-check each mapping against the corresponding mapdata payload and packed texture archive.
-5. Only after the mapping is native-verified, reconstruct missing placeholder texture/object assets.
-6. Keep all original systems, IDs, resource names, and rendering paths intact unless a replacement is explicitly required.
+The conversion reduces the descriptor region from 655,091 bytes to 343,943 bytes and produces a 351,467-byte complete native maptexinfo file including the 7,524-byte header/hash area.
 
-## Safety rule for reconstruction
+## Independent validation
 
-Do not replace `libKyotoLife.so` or rewrite maptexinfo mappings by guesswork. The next build should be generated from native-verified mappings and then tested against the original resource hashes and runtime loading path.
+All **4,685** converted payload offsets match the sequential texture chunks found in `mapdata000..mapdata234`:
+
+- mapdata index = `EMAPTEX // 20`
+- slot within mapdata = `EMAPTEX % 20`
+- PNG chunks and NBC-compressed texture chunks are both recognized
+- 4,685 / 4,685 payload offsets match exactly
+
+The reconstructed file was then fed through the native-format parser:
+
+- 4,685 / 4,685 records parsed
+- no invalid count
+- no trailing bytes
+- 4,685 / 4,685 payload offsets remain valid
+
+## What this fixes
+
+This reconstructs the missing **maptexinfo runtime serialization** without changing:
+
+- EMAPTEX IDs
+- mapdata files
+- SHA-256 validation hashes
+- texture payload bytes
+- native rendering code
+- resource names
+
+The next stage is therefore asset/runtime testing, not another speculative reverse-engineering rewrite.
+
+## Files
+
+The reproducible converter is:
+
+`tools/reconstruct_maptexinfo_native.py`
+
+It takes the original packaged `maptexinfo.smf`, converts the legacy descriptor representation to the exact native 1.5.12 representation, and can validate all 4,685 payload offsets against mapdata000..234.
