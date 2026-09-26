@@ -17,6 +17,9 @@ def health():
 def api(endpoint):
     payload=_payload(); logging.info("API %s %s payload=%s",request.method,endpoint,payload)
     if endpoint=="util/version_check": return jsonify(KNOWN_VERSION)
+    if endpoint=="get/get_user_id":
+        # Native parser reads response[1]["_uid"].
+        return jsonify([{}, {"_uid": "jl-local-" + uuid.uuid4().hex[:16]}])
     if endpoint in {"get/get_setting","get/get_user","get/get_user_id","get/get_user_currency_balance","get/get_friends","get/get_friend_available_action","get/get_credibility","get/get_game_data_url","get/get_refund_cash","util/get_feature_item","util/get_sale_item","get/get_black_diamond_shop_items","get/get_gacha_unlocked_templates","get/get_train_msg","get/get_rotating_featured_items","get/get_active_gacha_event","get/get_cross_promotions_list","get/get_referral_event","get/get_helper_friends"}: return jsonify(_generic_object())
     if endpoint.startswith("save/") or endpoint.startswith("clear/") or endpoint.startswith("move/"):
         out=_generic_object(); out["request_id"]=str(uuid.uuid4()); return jsonify(out)
