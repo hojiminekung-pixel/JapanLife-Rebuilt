@@ -45,6 +45,8 @@ jobs:
           if [ "$MODE" = "font-runtime-diagnostics" ]; then
             python3 tools/analyze_font_runtime.py input/Japan-Life-v1-5-12.apk -o output/font-runtime-diagnostics.json
             cp input/Japan-Life-v1-5-12.apk output/Japan-Life-1.5.12-font-runtime-baseline.apk
+          elif [ "$MODE" = "font-internal-cache" ]; then
+            python3 tools/patch_font_internal_cache.py input/Japan-Life-v1-5-12.apk -o output/Japan-Life-1.5.12-FONT-INTERNAL-CACHE-unsigned.apk
           elif [ "$MODE" = "offline-fix" ]; then
             python3 tools/patch_offline_fix.py input/Japan-Life-v1-5-12.apk -o output/Japan-Life-1.5.12-OFFLINE-FIX-unsigned.apk
           else
