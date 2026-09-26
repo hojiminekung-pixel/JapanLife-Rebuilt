@@ -20,3 +20,6 @@ The server logs every request and provides conservative acknowledgements for the
 
 ## Font finding 2026-09-25
 The exact 1.5.12 native metadata confirms pack 3 is U+3130..U+32FF and pack 4 is U+0E00..U+0E7F (Thai). DetermineLanguage() already maps Thai into pack 4. The previous range-swap experiment was therefore incorrect and has been removed. The remaining font bug is downstream of pack selection, in font-cache/glyph-texture construction or lookup. The APK contains res/raw/font.smf and the native code contains BuildFontTexture, ReadFromCacheFile, RestoreCachedTextureTable, g_aushOffset and g_asTextureTable.
+
+## Next server milestone
+Recover exact response schemas for get_game_data_url and save/load endpoints from native response parsers. Do not return generic success objects for these endpoints because the client expects typed nested fields.
