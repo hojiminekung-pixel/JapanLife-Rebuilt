@@ -1,0 +1,102 @@
+name: World Life Master APK 0.1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-master:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout build branch
+        uses: actions/checkout@v4
+
+      - name: Validate Master input
+        run: |
+          test -f master-input/world-life-master.zip
+          unzip -t master-input/world-life-master.zip
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Apktool
+        run: |
+          curl -L --fail --retry 3 \
+            -o /tmp/apktool.jar \
+            https://github.com/iBotPeaches/Apktool/releases/download/v2.10.0/apktool_2.10.0.jar
+          printf '#!/bin/sh\nexec java -jar /tmp/apktool.jar "$@"\n' > /usr/local/bin/apktool
+          chmod +x /usr/local/bin/apktool
+          apktool --version
+
+      - name: Flatten original Master APK payload
+        run: |
+          rm -rf work
+          mkdir -p work/master work/decoded
+          unzip -q master-input/world-life-master.zip -d work/master
+          top_count=$(find work/master -mindepth 1 -maxdepth 1 -type d | wc -l)
+          file_count=$(find work/master -mindepth 1 -maxdepth 1 -type f | wc -l)
+          if [ "$top_count" -eq 1 ] && [ "$file_count" -eq 0 ]; then
+            top=$(find work/master -mindepth 1 -maxdepth 1 -type d | head -1)
+            cp -a "$top"/. work/master-flat/
+          else
+            mkdir -p work/master-flat
+            cp -a work/master/. work/master-flat/
+          fi
+          test -f work/master-flat/AndroidManifest.xml
+          test -f work/master-flat/lib/armeabi/libKyotoLife.so
+
+      - name: Decode Master with Apktool
+        run: |
+          apktool d -f work/master-flat -o work/decoded
+
+      - name: Apply World Life 0.1 identity
+        run: |
+          python3 tools/world_life_manifest.py work/decoded/AndroidManifest.xml "World Life" "0.1"
+
+      - name: Add World Life character assets
+        run: |
+          mkdir -p work/decoded/assets/world_life
+          test -f world-life-assets/player_crown_duck.png
+          test -f world-life-assets/staff_duck.png
+          cp world-life-assets/player_crown_duck.png work/decoded/assets/world_life/
+          cp world-life-assets/staff_duck.png work/decoded/assets/world_life/
+
+      - name: Rebuild APK
+        run: |
+          apktool b work/decoded -o work/world-life-0.1-unsigned.apk
+          test -s work/world-life-0.1-unsigned.apk
+
+      - name: Align and sign APK
+        run: |
+          BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name zipalign | sort -V | tail -1)
+          AS=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -1)
+          test -x "$BT"
+          test -x "$AS"
+          keytool -genkeypair -v -keystore work/world-life-debug.keystore \
+            -alias worldlife -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=World Life, O=World Life" >/dev/null 2>&1 || true
+          "$BT" -f -p 4 work/world-life-0.1-unsigned.apk work/world-life-0.1-aligned.apk
+          "$AS" sign --ks work/world-life-debug.keystore \
+            --ks-pass pass:android --key-pass pass:android \
+            --out work/World-Life-0.1.apk work/world-life-0.1-aligned.apk
+          "$AS" verify --verbose work/World-Life-0.1.apk
+
+      - name: Verify package identity
+        run: |
+          BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name aapt2 | sort -V | tail -1)
+          "$BT" dump badging work/World-Life-0.1.apk | tee work/badging.txt
+          grep -F "versionName='0.1'" work/badging.txt
+          grep -F "application-label:'World Life'" work/badging.txt
+
+      - name: Upload World Life 0.1 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: World-Life-0.1
+          path: work/World-Life-0.1.apk
+          if-no-files-found: error
