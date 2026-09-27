@@ -1,0 +1,10 @@
+{
+  "bucket": "world-life-resources",
+  "prefix": "resources/",
+  "verification": "sha256",
+  "example": {
+    "name": "mapdata000.smf",
+    "size": 28686,
+    "sha256": "90ca3be14e53991b09ad0a802dd70636021ccac7a0e5bee70522b14c51c1edc2"
+  }
+}
