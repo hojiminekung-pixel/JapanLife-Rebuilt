@@ -29,6 +29,10 @@ Created tables:
 - legacy_game_accounts
 - legacy_server_settings
 
+Created secure database RPC helpers:
+- legacy_get_account
+- legacy_upsert_account
+
 Initial server settings:
 - game: World Life / 0.1
 - API contract: legacy-v1
@@ -36,16 +40,11 @@ Initial server settings:
 
 The original Master still points to the historical japanlife.nubee.com/json/ service. The APK has NOT been retargeted to the new server yet.
 
-## Legacy API source
+## Legacy API deployment
 
-A compatibility Edge Function source has now been committed to:
+A live Edge Function named legacy-api-full is now ACTIVE (v1) with JWT verification disabled because the original Master uses its own legacy request contract rather than Supabase JWTs.
 
-world-life-server/legacy-api/index.ts
-
-Git commit:
-c1324193f2219cf9ccbe3c98fb489cf5fc9d1a7
-
-The source implements the recovered core contract for:
+It currently implements the recovered core routes:
 - util/version_check
 - get/get_setting
 - get/get_game_data_url
@@ -58,9 +57,13 @@ The source implements the recovered core contract for:
 - save/save_udid_migration
 - rollback/get_game_data
 
-It accepts the legacy form-url-encoded request style as well as JSON/query parameters.
+The API returns the legacy-style indexed envelope for these core responses and accepts query parameters, JSON, and form-url-encoded requests.
 
-The currently active legacy-api Edge Function is only a small health/compatibility stub (version 2). The full database-backed source is prepared in GitHub but is NOT claimed as live until deployment and endpoint tests succeed.
+Source committed to GitHub:
+- world-life-server/legacy-api-full/index.ts
+- world-life-server/sql/legacy_api_rpc.sql
+
+The older legacy-api function remains a small health stub and is intentionally not used by the APK.
 
 ## Native legacy API contract already recovered
 
@@ -101,4 +104,4 @@ The recovered Master resource package is verified locally, but binary hosting an
 
 The patch system remains disabled. Do NOT generate a fake patch.bin.
 
-Never point the verified World Life 0.1 APK at a partially implemented legacy server. First complete compatibility endpoints and binary data hosting, then build a separate server-test APK.
+Never point the verified World Life 0.1 APK at a partially implemented legacy server. First complete binary data hosting and endpoint validation, then build a separate server-test APK.
