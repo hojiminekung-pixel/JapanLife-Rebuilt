@@ -1,8 +1,8 @@
 # World Life Server — Auth + Legacy Server Status
 
 ## Supabase project
-Project: World-Life-Server
-Project ref: hgsugqaswxxkrsalvkci
+Project: World-Life-Server  
+Project ref: hgsugqaswxxkrsalvkci  
 Region: ap-southeast-1
 
 ## Authentication
@@ -36,6 +36,32 @@ Initial server settings:
 
 The original Master still points to the historical japanlife.nubee.com/json/ service. The APK has NOT been retargeted to the new server yet.
 
+## Legacy API source
+
+A compatibility Edge Function source has now been committed to:
+
+world-life-server/legacy-api/index.ts
+
+Git commit:
+c1324193f2219cf9ccbe3c98fb489cf5fc9d1a7
+
+The source implements the recovered core contract for:
+- util/version_check
+- get/get_setting
+- get/get_game_data_url
+- get/get_user_id
+- get/get_user
+- save/save_user
+- save/save_user_frequent
+- save/save_version
+- move/set_password
+- save/save_udid_migration
+- rollback/get_game_data
+
+It accepts the legacy form-url-encoded request style as well as JSON/query parameters.
+
+The currently active legacy-api Edge Function is only a small health/compatibility stub (version 2). The full database-backed source is prepared in GitHub but is NOT claimed as live until deployment and endpoint tests succeed.
+
 ## Native legacy API contract already recovered
 
 Critical endpoints:
@@ -62,8 +88,17 @@ Important native request fields recovered include:
 - telephony_id
 - lang
 
-The exact response schemas and patch binary contract must be recovered before the client URL is changed.
+Additional exact contract findings:
+- set_password sends user_id, device_info, and a SHA-256 password value.
+- version_check sends os_device, os_version, game_version, lang, and user_id.
+- get_setting returns an indexed response whose useful payload is a list of {name,value} settings.
+- get_game_data_url returns dl_id, dl_path, dl_size, and checksum-related data.
+- The native client expects the useful response payload at JSON index 1 for these core calls.
 
-## Rule
+## Data / patch safety
 
-Never point the verified World Life 0.1 APK at a partially implemented legacy server. First complete the compatibility endpoints and binary data hosting, then build a separate server-test APK.
+The recovered Master resource package is verified locally, but binary hosting and checksum-compatible delivery are not finished.
+
+The patch system remains disabled. Do NOT generate a fake patch.bin.
+
+Never point the verified World Life 0.1 APK at a partially implemented legacy server. First complete compatibility endpoints and binary data hosting, then build a separate server-test APK.
