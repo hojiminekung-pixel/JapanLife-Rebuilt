@@ -45,3 +45,8 @@ The exact replacement should preserve whichever path each tutorial uses.
 | 0x28 (40) | CTutorialMoveObj |
 
 The mascot-related tutorial classes already exist natively, so the replacement can be integrated at the character/resource layer instead of rebuilding the tutorial UI.
+
+
+## Additional texture finding
+
+The `packed*.smf` family uses a `text1000` texture container rather than ordinary PNG files. Several large resources have decompressed payload sizes consistent with block-compressed GPU texture storage. The duck artwork should therefore be converted into the exact packed texture format only after the target atlas/slot and metadata are identified; raw PNG substitution is unsafe.
