@@ -1,12 +1,12 @@
-; Japan Life Rebuilt - original clean-room implementation
+; World Life - original clean-room implementation
 config_version=5
 
 [application]
-config/name="Japan Life Rebuilt"
+config/name="World Life"
 run/main_scene="res://Main.tscn"
 config/features=PackedStringArray("4.3")
 config/icon="res://icon.svg"
-config/description="เกมสร้างเมืองญี่ปุ่นแบบออฟไลน์"
+config/description="เกมสร้างเมืองแบบ World Life"
 
 [display]
 window/size/viewport_width=720
