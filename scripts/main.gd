@@ -21,6 +21,8 @@ var status: Label
 var visitor_layer: Control
 var elapsed_accumulator := 0.0
 var character_popup: Control
+var player_sheet: Texture2D
+var staff_sheet: Texture2D
 
 func _ready() -> void:
 	font = load("res://assets/fonts/NotoSansThai-Regular.ttf")
@@ -30,6 +32,8 @@ func _ready() -> void:
 	var character_data := load_dictionary(CHARACTER_PATH)
 	player_characters = character_data.get("player_characters", [])
 	staff_characters = character_data.get("staff", [])
+	player_sheet = load("res://assets/characters/player_characters.svg")
+	staff_sheet = load("res://assets/characters/staff_characters.svg")
 	load_game()
 	apply_offline_progress()
 	if str(state.get("player_character", "")) == "":
@@ -112,6 +116,17 @@ func box(color: String, radius: int = 12) -> StyleBoxFlat:
 
 func make_button(text: String, size: int = 18) -> Button:
 	var b := Button.new(); b.text = text; b.add_theme_font_override("font", font); b.add_theme_font_size_override("font_size", size); b.add_theme_stylebox_override("normal", box("#fff7df")); b.add_theme_stylebox_override("hover", box("#f4cf72")); b.add_theme_color_override("font_color", Color("#243b3b")); return b
+
+func character_texture(sheet: Texture2D, index: int) -> AtlasTexture:
+	var atlas := AtlasTexture.new()
+	atlas.atlas = sheet
+	atlas.region = Rect2((index % 4) * 256, (index / 4) * 256, 256, 256)
+	return atlas
+
+func apply_character_icon(button: Button, sheet: Texture2D, index: int) -> void:
+	button.icon = character_texture(sheet, index)
+	button.icon_max_width = 92
+	button.expand_icon = true
 
 func refresh() -> void:
 	var need: int = int(state["level"]) * 100

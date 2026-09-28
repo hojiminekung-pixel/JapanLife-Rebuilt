@@ -1,46 +1,406 @@
 {
   "player_characters": [
-    {"id":"mayor","name":"นายกเทศมนตรี","role":"ตัวละครหลัก","outfit":"ชุดพิธีการนายกเทศมนตรี","icon":"👑🦆","color":"#4f8edc"},
-    {"id":"deputy","name":"รองนายกเทศมนตรี","role":"ตัวละครหลัก","outfit":"ชุดสูททางการ","icon":"👑🦆","color":"#6577b8"},
-    {"id":"festival","name":"งานเทศกาล","role":"ตัวละครหลัก","outfit":"ชุดกิโมโนเทศกาล","icon":"👑🦆","color":"#e05a78"},
-    {"id":"tourism","name":"ท่องเที่ยว","role":"ตัวละครหลัก","outfit":"ชุดลำลองชายหาด","icon":"👑🦆","color":"#3ba8c4"},
-    {"id":"explorer","name":"สำรวจ/ผจญภัย","role":"ตัวละครหลัก","outfit":"ชุดนักสำรวจ + กล้อง","icon":"👑🦆","color":"#62a93c"},
-    {"id":"chef","name":"ครัว/อาหาร","role":"ตัวละครหลัก","outfit":"ชุดเชฟ","icon":"👑🦆","color":"#f28b22"},
-    {"id":"office","name":"พนักงานออฟฟิศ","role":"ตัวละครหลัก","outfit":"ชุดทำงาน + แท็บเล็ต","icon":"👑🦆","color":"#8d55c7"},
-    {"id":"builder","name":"ก่อสร้าง","role":"ตัวละครหลัก","outfit":"ชุดช่าง + หมวกนิรภัย","icon":"👑🦆","color":"#e5a31a"},
-    {"id":"police","name":"ตำรวจ/รักษาความปลอดภัย","role":"ตัวละครหลัก","outfit":"เครื่องแบบตำรวจ","icon":"👑🦆","color":"#4e82cf"},
-    {"id":"doctor","name":"แพทย์/สาธารณสุข","role":"ตัวละครหลัก","outfit":"ชุดแพทย์","icon":"👑🦆","color":"#e26b78"},
-    {"id":"teacher","name":"การศึกษา","role":"ตัวละครหลัก","outfit":"ชุดครู + กระดาน","icon":"👑🦆","color":"#9556cc"},
-    {"id":"special_festival","name":"เทศกาลพิเศษ","role":"ตัวละครหลัก","outfit":"ชุดคอสเพลย์/อีเวนต์","icon":"👑🦆","color":"#39b861"},
-    {"id":"wedding","name":"งานแต่งงาน","role":"ตัวละครหลัก","outfit":"ชุดจัดงานแต่ง","icon":"👑🦆","color":"#e86ca7"},
-    {"id":"party","name":"งานเลี้ยง/ปาร์ตี้","role":"ตัวละครหลัก","outfit":"ชุดงานสังสรรค์","icon":"👑🦆","color":"#d957a8"},
-    {"id":"ninja","name":"นินจา","role":"ตัวละครหลัก","outfit":"ชุดนินจา","icon":"👑🦆","color":"#555a60"},
-    {"id":"winter","name":"ฤดูหนาว","role":"ตัวละครหลัก","outfit":"ชุดกันหนาว","icon":"👑🦆","color":"#3d9fe3"},
-    {"id":"tradition","name":"งานประเพณี","role":"ตัวละครหลัก","outfit":"ชุดเทศกาลประเพณี","icon":"👑🦆","color":"#e4553b"},
-    {"id":"space","name":"อวกาศ","role":"ตัวละครหลัก","outfit":"ชุดนักบินอวกาศ","icon":"👑🦆","color":"#5c9ee8"},
-    {"id":"street","name":"สายสตรีท","role":"ตัวละครหลัก","outfit":"ชุดสตรีท","icon":"👑🦆","color":"#35b8b2"},
-    {"id":"future","name":"อนาคต","role":"ตัวละครหลัก","outfit":"ชุดไซไฟ/อนาคต","icon":"👑🦆","color":"#764bd4"}
+    {
+      "id": "mayor",
+      "name": "นายกเทศมนตรี",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดพิธีการนายกเทศมนตรี",
+      "icon": "",
+      "color": "#4f8edc",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 0
+    },
+    {
+      "id": "deputy",
+      "name": "รองนายกเทศมนตรี",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดสูททางการ",
+      "icon": "",
+      "color": "#6577b8",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 1
+    },
+    {
+      "id": "festival",
+      "name": "งานเทศกาล",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดกิโมโนเทศกาล",
+      "icon": "",
+      "color": "#e05a78",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 2
+    },
+    {
+      "id": "tourism",
+      "name": "ท่องเที่ยว",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดลำลองชายหาด",
+      "icon": "",
+      "color": "#3ba8c4",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 3
+    },
+    {
+      "id": "explorer",
+      "name": "สำรวจ/ผจญภัย",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดนักสำรวจ + กล้อง",
+      "icon": "",
+      "color": "#62a93c",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 4
+    },
+    {
+      "id": "chef",
+      "name": "ครัว/อาหาร",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดเชฟ",
+      "icon": "",
+      "color": "#f28b22",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 5
+    },
+    {
+      "id": "office",
+      "name": "พนักงานออฟฟิศ",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดทำงาน + แท็บเล็ต",
+      "icon": "",
+      "color": "#8d55c7",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 6
+    },
+    {
+      "id": "builder",
+      "name": "ก่อสร้าง",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดช่าง + หมวกนิรภัย",
+      "icon": "",
+      "color": "#e5a31a",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 7
+    },
+    {
+      "id": "police",
+      "name": "ตำรวจ/รักษาความปลอดภัย",
+      "role": "ตัวละครหลัก",
+      "outfit": "เครื่องแบบตำรวจ",
+      "icon": "",
+      "color": "#4e82cf",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 8
+    },
+    {
+      "id": "doctor",
+      "name": "แพทย์/สาธารณสุข",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดแพทย์",
+      "icon": "",
+      "color": "#e26b78",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 9
+    },
+    {
+      "id": "teacher",
+      "name": "การศึกษา",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดครู + กระดาน",
+      "icon": "",
+      "color": "#9556cc",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 10
+    },
+    {
+      "id": "special_festival",
+      "name": "เทศกาลพิเศษ",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดคอสเพลย์/อีเวนต์",
+      "icon": "",
+      "color": "#39b861",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 11
+    },
+    {
+      "id": "wedding",
+      "name": "งานแต่งงาน",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดจัดงานแต่ง",
+      "icon": "",
+      "color": "#e86ca7",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 12
+    },
+    {
+      "id": "party",
+      "name": "งานเลี้ยง/ปาร์ตี้",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดงานสังสรรค์",
+      "icon": "",
+      "color": "#d957a8",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 13
+    },
+    {
+      "id": "ninja",
+      "name": "นินจา",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดนินจา",
+      "icon": "",
+      "color": "#555a60",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 14
+    },
+    {
+      "id": "winter",
+      "name": "ฤดูหนาว",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดกันหนาว",
+      "icon": "",
+      "color": "#3d9fe3",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 15
+    },
+    {
+      "id": "tradition",
+      "name": "งานประเพณี",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดเทศกาลประเพณี",
+      "icon": "",
+      "color": "#e4553b",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 16
+    },
+    {
+      "id": "space",
+      "name": "อวกาศ",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดนักบินอวกาศ",
+      "icon": "",
+      "color": "#5c9ee8",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 17
+    },
+    {
+      "id": "street",
+      "name": "สายสตรีท",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดสตรีท",
+      "icon": "",
+      "color": "#35b8b2",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 18
+    },
+    {
+      "id": "future",
+      "name": "อนาคต",
+      "role": "ตัวละครหลัก",
+      "outfit": "ชุดไซไฟ/อนาคต",
+      "icon": "",
+      "color": "#764bd4",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 19
+    }
   ],
   "staff": [
-    {"id":"staff_office","name":"พนักงานออฟฟิศ","role":"สำนักงาน","outfit":"ชุดทำงาน + แท็บเล็ต","icon":"🦆💼","color":"#8d55c7"},
-    {"id":"staff_builder","name":"ช่างก่อสร้าง","role":"ก่อสร้าง","outfit":"หมวกนิรภัย + เสื้อช่าง + แบบแปลน","icon":"🦆👷","color":"#e5a31a"},
-    {"id":"staff_police","name":"ตำรวจเมือง","role":"รักษาความปลอดภัย","outfit":"เครื่องแบบตำรวจ + วิทยุ","icon":"🦆👮","color":"#4e82cf"},
-    {"id":"staff_doctor","name":"แพทย์","role":"สาธารณสุข","outfit":"เสื้อกาวน์ + กระเป๋าแพทย์","icon":"🦆🩺","color":"#e26b78"},
-    {"id":"staff_teacher","name":"ครู","role":"การศึกษา","outfit":"ชุดครู + หนังสือ","icon":"🦆📚","color":"#9556cc"},
-    {"id":"staff_chef","name":"เชฟ","role":"ครัว/อาหาร","outfit":"ชุดเชฟ + หมวกเชฟ + กระทะ","icon":"🦆👨‍🍳","color":"#f28b22"},
-    {"id":"staff_tour_guide","name":"ไกด์ท่องเที่ยว","role":"ท่องเที่ยว","outfit":"เสื้อฮาวาย + กล้อง + กระเป๋า","icon":"🦆📷","color":"#3ba8c4"},
-    {"id":"staff_explorer","name":"นักสำรวจ","role":"สำรวจ/ผจญภัย","outfit":"ชุดสำรวจ + เป้ + กล้อง","icon":"🦆🧭","color":"#62a93c"},
-    {"id":"staff_festival","name":"พนักงานเทศกาล","role":"เทศกาล","outfit":"ชุดเทศกาลประจำงาน","icon":"🦆🎎","color":"#e05a78"},
-    {"id":"staff_wedding","name":"ทีมงานแต่งงาน","role":"งานแต่งงาน","outfit":"ชุดจัดงานแต่ง + ดอกไม้","icon":"🦆💐","color":"#e86ca7"},
-    {"id":"staff_party","name":"ทีมงานปาร์ตี้","role":"งานเลี้ยง","outfit":"ชุดอีเวนต์ + อุปกรณ์จัดงาน","icon":"🦆🎉","color":"#d957a8"},
-    {"id":"staff_ninja","name":"นินจา","role":"พิเศษ","outfit":"ชุดนินจา + อาวุธประกอบฉาก","icon":"🦆🥷","color":"#555a60"},
-    {"id":"staff_winter","name":"พนักงานฤดูหนาว","role":"ฤดูหนาว","outfit":"เสื้อกันหนาว + แว่นหิมะ","icon":"🦆❄️","color":"#3d9fe3"},
-    {"id":"staff_tradition","name":"ทีมงานประเพณี","role":"งานประเพณี","outfit":"ชุดประเพณี + โคมไฟ","icon":"🦆🏮","color":"#e4553b"},
-    {"id":"staff_astronaut","name":"นักบินอวกาศ","role":"อวกาศ","outfit":"ชุดอวกาศ + หมวกนักบิน","icon":"🦆🚀","color":"#5c9ee8"},
-    {"id":"staff_street","name":"พนักงานสายสตรีท","role":"สตรีท","outfit":"ฮู้ดดี้ + หูฟัง","icon":"🦆🎧","color":"#35b8b2"},
-    {"id":"staff_future","name":"พนักงานอนาคต","role":"อนาคต","outfit":"ชุดไซไฟ + แว่นพิเศษ","icon":"🦆🤖","color":"#764bd4"},
-    {"id":"staff_market","name":"พนักงานตลาด","role":"ร้านค้า","outfit":"ผ้ากันเปื้อน + ป้ายร้าน","icon":"🦆🛍️","color":"#d5a84c"},
-    {"id":"staff_maintenance","name":"ช่างดูแลเมือง","role":"สาธารณูปโภค","outfit":"ชุดช่าง + กล่องเครื่องมือ","icon":"🦆🔧","color":"#65766b"},
-    {"id":"staff_service","name":"พนักงานบริการ","role":"บริการประชาชน","outfit":"เสื้อยูนิฟอร์ม + ป้ายชื่อ","icon":"🦆🏷️","color":"#6a91d5"}
+    {
+      "id": "staff_office",
+      "name": "พนักงานออฟฟิศ",
+      "role": "สำนักงาน",
+      "outfit": "ชุดทำงาน + แท็บเล็ต",
+      "icon": "",
+      "color": "#8d55c7",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 0
+    },
+    {
+      "id": "staff_builder",
+      "name": "ช่างก่อสร้าง",
+      "role": "ก่อสร้าง",
+      "outfit": "หมวกนิรภัย + เสื้อช่าง + แบบแปลน",
+      "icon": "",
+      "color": "#e5a31a",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 1
+    },
+    {
+      "id": "staff_police",
+      "name": "ตำรวจเมือง",
+      "role": "รักษาความปลอดภัย",
+      "outfit": "เครื่องแบบตำรวจ + วิทยุ",
+      "icon": "",
+      "color": "#4e82cf",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 2
+    },
+    {
+      "id": "staff_doctor",
+      "name": "แพทย์",
+      "role": "สาธารณสุข",
+      "outfit": "เสื้อกาวน์ + กระเป๋าแพทย์",
+      "icon": "",
+      "color": "#e26b78",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 3
+    },
+    {
+      "id": "staff_teacher",
+      "name": "ครู",
+      "role": "การศึกษา",
+      "outfit": "ชุดครู + หนังสือ",
+      "icon": "",
+      "color": "#9556cc",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 4
+    },
+    {
+      "id": "staff_chef",
+      "name": "เชฟ",
+      "role": "ครัว/อาหาร",
+      "outfit": "ชุดเชฟ + หมวกเชฟ + กระทะ",
+      "icon": "",
+      "color": "#f28b22",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 5
+    },
+    {
+      "id": "staff_tour_guide",
+      "name": "ไกด์ท่องเที่ยว",
+      "role": "ท่องเที่ยว",
+      "outfit": "เสื้อฮาวาย + กล้อง + กระเป๋า",
+      "icon": "",
+      "color": "#3ba8c4",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 6
+    },
+    {
+      "id": "staff_explorer",
+      "name": "นักสำรวจ",
+      "role": "สำรวจ/ผจญภัย",
+      "outfit": "ชุดสำรวจ + เป้ + กล้อง",
+      "icon": "",
+      "color": "#62a93c",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 7
+    },
+    {
+      "id": "staff_festival",
+      "name": "พนักงานเทศกาล",
+      "role": "เทศกาล",
+      "outfit": "ชุดเทศกาลประจำงาน",
+      "icon": "",
+      "color": "#e05a78",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 8
+    },
+    {
+      "id": "staff_wedding",
+      "name": "ทีมงานแต่งงาน",
+      "role": "งานแต่งงาน",
+      "outfit": "ชุดจัดงานแต่ง + ดอกไม้",
+      "icon": "",
+      "color": "#e86ca7",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 9
+    },
+    {
+      "id": "staff_party",
+      "name": "ทีมงานปาร์ตี้",
+      "role": "งานเลี้ยง",
+      "outfit": "ชุดอีเวนต์ + อุปกรณ์จัดงาน",
+      "icon": "",
+      "color": "#d957a8",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 10
+    },
+    {
+      "id": "staff_ninja",
+      "name": "นินจา",
+      "role": "พิเศษ",
+      "outfit": "ชุดนินจา + อาวุธประกอบฉาก",
+      "icon": "",
+      "color": "#555a60",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 11
+    },
+    {
+      "id": "staff_winter",
+      "name": "พนักงานฤดูหนาว",
+      "role": "ฤดูหนาว",
+      "outfit": "เสื้อกันหนาว + แว่นหิมะ",
+      "icon": "",
+      "color": "#3d9fe3",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 12
+    },
+    {
+      "id": "staff_tradition",
+      "name": "ทีมงานประเพณี",
+      "role": "งานประเพณี",
+      "outfit": "ชุดประเพณี + โคมไฟ",
+      "icon": "",
+      "color": "#e4553b",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 13
+    },
+    {
+      "id": "staff_astronaut",
+      "name": "นักบินอวกาศ",
+      "role": "อวกาศ",
+      "outfit": "ชุดอวกาศ + หมวกนักบิน",
+      "icon": "",
+      "color": "#5c9ee8",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 14
+    },
+    {
+      "id": "staff_street",
+      "name": "พนักงานสายสตรีท",
+      "role": "สตรีท",
+      "outfit": "ฮู้ดดี้ + หูฟัง",
+      "icon": "",
+      "color": "#35b8b2",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 15
+    },
+    {
+      "id": "staff_future",
+      "name": "พนักงานอนาคต",
+      "role": "อนาคต",
+      "outfit": "ชุดไซไฟ + แว่นพิเศษ",
+      "icon": "",
+      "color": "#764bd4",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 16
+    },
+    {
+      "id": "staff_market",
+      "name": "พนักงานตลาด",
+      "role": "ร้านค้า",
+      "outfit": "ผ้ากันเปื้อน + ป้ายร้าน",
+      "icon": "",
+      "color": "#d5a84c",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 17
+    },
+    {
+      "id": "staff_maintenance",
+      "name": "ช่างดูแลเมือง",
+      "role": "สาธารณูปโภค",
+      "outfit": "ชุดช่าง + กล่องเครื่องมือ",
+      "icon": "",
+      "color": "#65766b",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 18
+    },
+    {
+      "id": "staff_service",
+      "name": "พนักงานบริการ",
+      "role": "บริการประชาชน",
+      "outfit": "เสื้อยูนิฟอร์ม + ป้ายชื่อ",
+      "icon": "",
+      "color": "#6a91d5",
+      "sprite_sheet": "res://assets/characters/staff_characters.svg",
+      "sprite_index": 19
+    }
   ]
 }
