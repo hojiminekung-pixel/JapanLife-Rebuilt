@@ -24,7 +24,7 @@ jobs:
       - name: Upload 412 SMF resources to Supabase
         env:
           SUPABASE_URL: https://hgsugqaswxxkrsalvkci.supabase.co
-          SUPABASE_ANON_KEY: ${{ secrets.WORLD_LIFE_SUPABASE_ANON_KEY }}
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhnc3VncWFzd3h4a3JzYWx2a2NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MzIxODMsImV4cCI6MjEwNjAwODE4M30.Vz9I_Pj5yyRoEes_39BL-1tGFo-9rNxIeeiR6Y4u31Y
         run: |
           mkdir -p extracted
           unzip -q World-Life-Server-Resources.zip -d extracted
