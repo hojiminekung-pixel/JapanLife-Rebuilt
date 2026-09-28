@@ -6,12 +6,15 @@ const BUILDING_PATH := "res://data/buildings.json"
 const DECORATION_PATH := "res://data/decorations.json"
 const QUEST_PATH := "res://data/quests.json"
 const CHARACTER_PATH := "res://data/characters.json"
+const NPC_PATH := "res://data/npcs.json"
 var font: Font
 var buildings: Array = []
 var decorations: Array = []
 var quests: Array = []
 var player_characters: Array = []
 var staff_characters: Array = []
+var npc_data: Dictionary = {}
+var npc_sheet: Texture2D
 var state := {}
 var selected := ""
 var root_ui: Control
@@ -32,6 +35,8 @@ func _ready() -> void:
 	var character_data := load_dictionary(CHARACTER_PATH)
 	player_characters = character_data.get("player_characters", [])
 	staff_characters = character_data.get("staff", [])
+	npc_data = load_dictionary(NPC_PATH)
+	npc_sheet = load("res://assets/characters/walking_npcs.svg")
 	player_sheet = load("res://assets/characters/player_characters.svg")
 	staff_sheet = load("res://assets/characters/staff_characters.svg")
 	load_game()
@@ -323,7 +328,24 @@ func _process(delta: float) -> void:
 		refresh()
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED: save_game()
+func npc_texture(index: int) -> AtlasTexture:
+	var atlas := AtlasTexture.new()
+	atlas.atlas = npc_sheet
+	atlas.region = Rect2((index % 6) * 170, (index / 6) * 220, 170, 220)
+	return atlas
+
 func spawn_visitors() -> void:
-	for i in 4:
-		var visitor := make_label("🚶", 25); visitor.position = Vector2(20 + i * 150, 420 + (i % 2) * 150); visitor_layer.add_child(visitor)
-		var tween := create_tween().set_loops(); tween.tween_property(visitor, "position:x", 560.0 - i * 50, 4.0 + i); tween.tween_property(visitor, "position:x", 20.0 + i * 100, 4.0 + i)
+	# Walking NPCs are citizens only. Building/shop staff are separate.
+	for child in visitor_layer.get_children(): child.queue_free()
+	for i in 12:
+		var visitor := TextureRect.new()
+		visitor.texture = npc_texture(i % 24)
+		visitor.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		visitor.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		visitor.size = Vector2(72, 92)
+		visitor.position = Vector2(15 + (i % 6) * 105, 350 + (i % 3) * 135)
+		visitor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		visitor_layer.add_child(visitor)
+		var tween := create_tween().set_loops()
+		tween.tween_property(visitor, "position:x", 560.0 - (i % 6) * 55, 4.0 + (i % 4) * 0.4)
+		tween.tween_property(visitor, "position:x", 15.0 + (i % 6) * 55, 4.0 + (i % 4) * 0.4)
