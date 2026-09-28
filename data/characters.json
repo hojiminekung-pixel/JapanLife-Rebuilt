@@ -199,6 +199,16 @@
       "color": "#764bd4",
       "sprite_sheet": "res://assets/characters/player_characters.svg",
       "sprite_index": 19
+    },
+    {
+      "id": "crown_duck_extra",
+      "name": "เป็ดมงกุฎ",
+      "role": "ตัวละครหลักเพิ่มเติม",
+      "outfit": "ชุดประจำตัวพร้อมมงกุฎ",
+      "icon": "",
+      "color": "#f4c542",
+      "sprite_sheet": "res://assets/characters/player_characters.svg",
+      "sprite_index": 20
     }
   ],
   "staff": [
