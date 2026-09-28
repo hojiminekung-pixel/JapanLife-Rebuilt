@@ -1,6 +1,6 @@
 extends Node2D
 
-const SAVE_PATH := "user://japan_life_save.json"
+const SAVE_PATH := "user://world_life_save.json"
 const SAVE_VERSION := 1
 const BUILDING_PATH := "res://data/buildings.json"
 const DECORATION_PATH := "res://data/decorations.json"
@@ -220,7 +220,7 @@ func expand_land(cost: int, v: VBoxContainer) -> void:
 
 func show_settings() -> void:
 	var v := popup("ตั้งค่า")
-	v.add_child(make_label("Japan Life Rebuilt\nเล่นแบบออฟไลน์ • บันทึกอัตโนมัติ", 20, Color("#264653")))
+	v.add_child(make_label("World Life\nเล่นแบบออฟไลน์ • บันทึกอัตโนมัติ", 20, Color("#264653")))
 	var save := make_button("บันทึกเกมตอนนี้"); save.pressed.connect(save_game); v.add_child(save)
 	var reset := make_button("เริ่มเมืองใหม่"); reset.pressed.connect(reset_game.bind(v)); v.add_child(reset)
 	var close := make_button("ปิด"); close.pressed.connect(close_popup.bind(v)); v.add_child(close)
