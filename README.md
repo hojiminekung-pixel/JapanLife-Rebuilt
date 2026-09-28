@@ -1,6 +1,6 @@
-# Japan Life Rebuilt
+# World Life
 
-เกมสร้างเมืองธีมญี่ปุ่นแบบ **clean-room** ที่พัฒนาด้วย Godot 4 สำหรับ Android และเล่นได้แบบออฟไลน์ทั้งหมด. ภาพทั้งหมดในรุ่นนี้เป็นไอคอน Unicode และงาน placeholder ดั้งเดิม; ไม่มีทรัพย์สิน โค้ด หรือระบบจากเกม Japan Life เดิม.
+เกมสร้างเมืองแบบ **clean-room** ที่พัฒนาด้วย Godot 4 สำหรับ Android และเล่นได้แบบออฟไลน์ทั้งหมด. ภาพทั้งหมดในรุ่นนี้เป็นไอคอน Unicode และงาน placeholder ดั้งเดิม; ไม่มีทรัพย์สิน โค้ด หรือระบบจากเกม Japan Life เดิม.
 
 ## เริ่มใช้งาน
 
@@ -12,4 +12,9 @@
 
 ## Android
 
-`export_presets.cfg` ใช้ package id `com.hojiminekung.japanliferebuilt` และมี workflow GitHub Actions ที่ export debug APK แล้วอัปโหลดเป็น artifact.
+`export_presets.cfg` ใช้ package id `com.hojiminekung.worldlife` และมี workflow GitHub Actions ที่ export debug APK แล้วอัปโหลดเป็น artifact.
+
+
+## World-Life-Server
+
+The project is prepared to use the World-Life-Server gateway for server-delivered game data. The current verified server layer keeps the original Master resource files separate and exposes a controlled resource manifest. No unverified binary patch is published yet.
