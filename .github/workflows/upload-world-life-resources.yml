@@ -18,32 +18,40 @@ jobs:
 
       - name: Rebuild resource archive
         run: |
-          cat World-Life-Server-Resources.part-aa               World-Life-Server-Resources.part-ab               World-Life-Server-Resources.part-ac > World-Life-Server-Resources.zip
+          cat World-Life-Server-Resources.part-aa \
+              World-Life-Server-Resources.part-ab \
+              World-Life-Server-Resources.part-ac > World-Life-Server-Resources.zip
           unzip -t World-Life-Server-Resources.zip
 
       - name: Upload 412 SMF resources to Supabase
         env:
           SUPABASE_URL: https://hgsugqaswxxkrsalvkci.supabase.co
-          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhnc3VncWFzd3h4a3JzYWx2a2NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MzIxODMsImV4cCI6MjEwNjAwODE4M30.Vz9I_Pj5yyRoEes_39BL-1tGFo-9rNxIeeiR6Y4u31Y
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
+          test -n "$SUPABASE_ANON_KEY"
           mkdir -p extracted
           unzip -q World-Life-Server-Resources.zip -d extracted
+
           count=0
           for f in extracted/*.smf; do
             name="$(basename "$f")"
             code=$(curl -sS -o /tmp/resp -w '%{http_code}' \
-              -X POST "$SUPABASE_URL/storage/v1/object/game-resources/$name" \
+              -X POST "$SUPABASE_URL/storage/v1/object/world-life-resources/$name" \
               -H "apikey: $SUPABASE_ANON_KEY" \
               -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
               -H "Content-Type: application/octet-stream" \
+              -H "x-upsert: true" \
               --data-binary @"$f")
+
             if [ "$code" != "200" ] && [ "$code" != "201" ]; then
               echo "Upload failed: $name HTTP $code"
               cat /tmp/resp
               exit 1
             fi
+
             count=$((count+1))
             echo "Uploaded $count: $name"
           done
+
           test "$count" -eq 412
           echo "Uploaded exactly 412 SMF resources."
