@@ -16,7 +16,7 @@ jobs:
       GODOT_VERSION: 4.3
       GODOT_RELEASE: 4.3-stable
       # The verified artifact is normalized to this deterministic path after export.
-      APK_PATH: build/JapanLifeRebuilt-debug.apk
+      APK_PATH: build/WorldLife-debug.apk
     steps:
       - uses: actions/checkout@v4
 
@@ -124,6 +124,6 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: JapanLifeRebuilt-debug-apk
+          name: WorldLife-debug-apk
           path: ${{ env.APK_PATH }}
           if-no-files-found: error
