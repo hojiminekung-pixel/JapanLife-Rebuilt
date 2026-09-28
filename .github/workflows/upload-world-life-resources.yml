@@ -23,7 +23,7 @@ jobs:
               World-Life-Server-Resources.part-ac > World-Life-Server-Resources.zip
           unzip -t World-Life-Server-Resources.zip
 
-      - name: Upload 412 SMF resources to Supabase
+      - name: Upload 412 SMF resources through Gateway
         env:
           SUPABASE_URL: https://hgsugqaswxxkrsalvkci.supabase.co
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -36,11 +36,10 @@ jobs:
           for f in extracted/*.smf; do
             name="$(basename "$f")"
             code=$(curl -sS -o /tmp/resp -w '%{http_code}' \
-              -X POST "$SUPABASE_URL/storage/v1/object/world-life-resources/$name" \
+              -X POST "$SUPABASE_URL/functions/v1/world-life-resource-upload/$name" \
               -H "apikey: $SUPABASE_ANON_KEY" \
               -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
               -H "Content-Type: application/octet-stream" \
-              -H "x-upsert: true" \
               --data-binary @"$f")
 
             if [ "$code" != "200" ] && [ "$code" != "201" ]; then
