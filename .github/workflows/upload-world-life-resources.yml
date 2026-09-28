@@ -1,0 +1,49 @@
+name: Upload World Life Master Resources
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upload-resources:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check resource parts
+        run: |
+          test -f World-Life-Server-Resources.part-aa
+          test -f World-Life-Server-Resources.part-ab
+          test -f World-Life-Server-Resources.part-ac
+
+      - name: Rebuild resource archive
+        run: |
+          cat World-Life-Server-Resources.part-aa               World-Life-Server-Resources.part-ab               World-Life-Server-Resources.part-ac > World-Life-Server-Resources.zip
+          unzip -t World-Life-Server-Resources.zip
+
+      - name: Upload 412 SMF resources to Supabase
+        env:
+          SUPABASE_URL: https://hgsugqaswxxkrsalvkci.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.WORLD_LIFE_SUPABASE_ANON_KEY }}
+        run: |
+          mkdir -p extracted
+          unzip -q World-Life-Server-Resources.zip -d extracted
+          count=0
+          for f in extracted/*.smf; do
+            name="$(basename "$f")"
+            code=$(curl -sS -o /tmp/resp -w '%{http_code}' \
+              -X POST "$SUPABASE_URL/storage/v1/object/game-resources/$name" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary @"$f")
+            if [ "$code" != "200" ] && [ "$code" != "201" ]; then
+              echo "Upload failed: $name HTTP $code"
+              cat /tmp/resp
+              exit 1
+            fi
+            count=$((count+1))
+            echo "Uploaded $count: $name"
+          done
+          test "$count" -eq 412
+          echo "Uploaded exactly 412 SMF resources."
