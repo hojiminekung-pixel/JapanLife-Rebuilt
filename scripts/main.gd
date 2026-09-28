@@ -5,10 +5,13 @@ const SAVE_VERSION := 1
 const BUILDING_PATH := "res://data/buildings.json"
 const DECORATION_PATH := "res://data/decorations.json"
 const QUEST_PATH := "res://data/quests.json"
+const CHARACTER_PATH := "res://data/characters.json"
 var font: Font
 var buildings: Array = []
 var decorations: Array = []
 var quests: Array = []
+var player_characters: Array = []
+var staff_characters: Array = []
 var state := {}
 var selected := ""
 var root_ui: Control
@@ -17,25 +20,40 @@ var grid: GridContainer
 var status: Label
 var visitor_layer: Control
 var elapsed_accumulator := 0.0
+var character_popup: Control
 
 func _ready() -> void:
 	font = load("res://assets/fonts/NotoSansThai-Regular.ttf")
 	buildings = load_json(BUILDING_PATH)
 	decorations = load_json(DECORATION_PATH)
 	quests = load_json(QUEST_PATH)
+	var character_data := load_dictionary(CHARACTER_PATH)
+	player_characters = character_data.get("player_characters", [])
+	staff_characters = character_data.get("staff", [])
 	load_game()
 	apply_offline_progress()
-	build_interface()
-	refresh()
-	spawn_visitors()
+	if str(state.get("player_character", "")) == "":
+		build_character_selection()
+	else:
+		start_game_interface()
 
 func load_json(path: String) -> Array:
 	var text := FileAccess.get_file_as_string(path)
 	var parsed = JSON.parse_string(text)
 	return parsed if parsed is Array else []
 
+func load_dictionary(path: String) -> Dictionary:
+	var text := FileAccess.get_file_as_string(path)
+	var parsed = JSON.parse_string(text)
+	return parsed if parsed is Dictionary else {}
+
+func start_game_interface() -> void:
+	build_interface()
+	refresh()
+	spawn_visitors()
+
 func starter_state() -> Dictionary:
-	return {"version": SAVE_VERSION, "gold": 500, "diamonds": 15, "energy": 20, "xp": 0, "level": 1, "reputation": 4, "land": 0, "tiles": {"1_1":{"kind":"road"}, "2_1":{"kind":"road"}, "1_2":{"kind":"tea","level":1,"stored":0.0,"last":Time.get_unix_time_from_system()}, "2_2":{"kind":"home","level":1,"stored":0.0,"last":Time.get_unix_time_from_system()}}, "stats":{"build":2,"road":2,"decorate":0,"upgrade":0,"gold":0}, "claimed":[], "last_seen":Time.get_unix_time_from_system()}
+	return {"version": SAVE_VERSION, "player_character": "", "gold": 500, "diamonds": 15, "energy": 20, "xp": 0, "level": 1, "reputation": 4, "land": 0, "tiles": {"1_1":{"kind":"road"}, "2_1":{"kind":"road"}, "1_2":{"kind":"tea","level":1,"stored":0.0,"last":Time.get_unix_time_from_system()}, "2_2":{"kind":"home","level":1,"stored":0.0,"last":Time.get_unix_time_from_system()}}, "stats":{"build":2,"road":2,"decorate":0,"upgrade":0,"gold":0}, "claimed":[], "last_seen":Time.get_unix_time_from_system()}
 
 func load_game() -> void:
 	if not FileAccess.file_exists(SAVE_PATH):
@@ -82,9 +100,9 @@ func build_interface() -> void:
 	var scroll := ScrollContainer.new(); scroll.position = Vector2(18, 178); scroll.size = Vector2(684, 775); root_ui.add_child(scroll)
 	grid = GridContainer.new(); grid.columns = 6; grid.add_theme_constant_override("h_separation", 7); grid.add_theme_constant_override("v_separation", 7); scroll.add_child(grid)
 	visitor_layer = Control.new(); visitor_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE; visitor_layer.position = Vector2(20, 180); visitor_layer.size = Vector2(680, 720); root_ui.add_child(visitor_layer)
-	var bar := HBoxContainer.new(); bar.position = Vector2(12, 1130); bar.size = Vector2(696, 126); bar.add_theme_constant_override("separation", 8); root_ui.add_child(bar)
-	for data in [["🏗️\nสร้าง", "build"], ["🛣️\nถนน", "road"], ["✨\nตกแต่ง", "decor"], ["📜\nภารกิจ", "quests"], ["🗺️\nขยาย", "land"], ["⚙️\nตั้งค่า", "settings"]]:
-		var b := make_button(data[0], 17); b.custom_minimum_size = Vector2(108, 120); b.pressed.connect(open_menu.bind(data[1])); bar.add_child(b)
+	var bar := HBoxContainer.new(); bar.position := Vector2(8, 1130); bar.size := Vector2(704, 126); bar.add_theme_constant_override("separation", 4); root_ui.add_child(bar)
+	for data in [["🏗️\nสร้าง", "build"], ["🛣️\nถนน", "road"], ["✨\nตกแต่ง", "decor"], ["👔\nพนักงาน", "staff"], ["📜\nภารกิจ", "quests"], ["🗺️\nขยาย", "land"], ["⚙️\nตั้งค่า", "settings"]]:
+		var b := make_button(data[0], 15); b.custom_minimum_size = Vector2(98, 120); b.pressed.connect(open_menu.bind(data[1])); bar.add_child(b)
 
 func make_label(text: String, size: int = 18, color := Color.WHITE) -> Label:
 	var label := Label.new(); label.text = text; label.add_theme_font_override("font", font); label.add_theme_font_size_override("font_size", size); label.add_theme_color_override("font_color", color); label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; return label
@@ -136,6 +154,7 @@ func open_menu(menu: String) -> void:
 	if menu == "road": place_road(); return
 	if menu == "build": show_catalog("สร้างอาคาร", buildings, false)
 	elif menu == "decor": show_catalog("ของตกแต่ง", decorations, true)
+	elif menu == "staff": show_staff_roster()
 	elif menu == "quests": show_quests()
 	elif menu == "land": show_land()
 	else: show_settings()
@@ -218,13 +237,61 @@ func expand_land(cost: int, v: VBoxContainer) -> void:
 	if state.gold < cost: status.text = "เงินไม่พอ"; return
 	state.gold -= cost; state.land += 1; close_popup(v); refresh()
 
+func build_character_selection() -> void:
+	root_ui = Control.new()
+	root_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(root_ui)
+	var backdrop := ColorRect.new()
+	backdrop.color = Color("#dff3ff")
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root_ui.add_child(backdrop)
+	var title := make_label("🌍 World Life", 34, Color("#245b91"))
+	title.position = Vector2(20, 20); title.size = Vector2(680, 55); title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	root_ui.add_child(title)
+	var subtitle := make_label("เลือกตัวละครหลักก่อนเริ่มเกม\nตัวละครหลักจะมีมงกุฎ 👑 และสามารถเปลี่ยนบทบาทได้", 19, Color("#264653"))
+	subtitle.position = Vector2(25, 80); subtitle.size = Vector2(670, 75); subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	root_ui.add_child(subtitle)
+	var scroll := ScrollContainer.new(); scroll.position = Vector2(15, 165); scroll.size = Vector2(690, 1010); root_ui.add_child(scroll)
+	var grid_select := GridContainer.new(); grid_select.columns = 2; grid_select.add_theme_constant_override("h_separation", 10); grid_select.add_theme_constant_override("v_separation", 10); scroll.add_child(grid_select)
+	for c in player_characters:
+		var b := make_button("%s\n%s\nชุด: %s" % [str(c.get("icon", "👑🦆")), str(c.get("name", "")), str(c.get("outfit", ""))], 16)
+		b.custom_minimum_size = Vector2(330, 125)
+		b.add_theme_stylebox_override("normal", box(str(c.get("color", "#fff7df")), 18))
+		b.pressed.connect(select_player_character.bind(c.get("id", "")))
+		grid_select.add_child(b)
+
+func select_player_character(character_id: String) -> void:
+	state["player_character"] = character_id
+	save_game()
+	root_ui.queue_free()
+	root_ui = null
+	start_game_interface()
+
+func player_character_data() -> Dictionary:
+	for c in player_characters:
+		if str(c.get("id", "")) == str(state.get("player_character", "")):
+			return c
+	return {}
+
+func show_staff_roster() -> void:
+	var v := popup("👔 พนักงาน — ชุดประจำอาชีพ")
+	v.add_child(make_label("พนักงานแต่ละคนใช้ชุดและอุปกรณ์เฉพาะหน้าที่\nไม่มีมงกุฎ เพื่อแยกจากตัวละครหลัก", 18, Color("#264653")))
+	for staff in staff_characters:
+		var b := make_button("%s  %s\n%s • %s" % [str(staff.get("icon", "🦆")), str(staff.get("name", "")), str(staff.get("role", "")), str(staff.get("outfit", ""))], 15)
+		b.custom_minimum_size = Vector2(610, 74)
+		b.add_theme_stylebox_override("normal", box(str(staff.get("color", "#fff7df")), 14))
+		v.add_child(b)
+	var close := make_button("ปิด"); close.pressed.connect(close_popup.bind(v)); v.add_child(close)
+
 func show_settings() -> void:
 	var v := popup("ตั้งค่า")
-	v.add_child(make_label("World Life\nเล่นแบบออฟไลน์ • บันทึกอัตโนมัติ", 20, Color("#264653")))
+	var pc := player_character_data()
+	v.add_child(make_label("World Life\nตัวละครหลัก: %s\nชุด: %s\nเล่นแบบออฟไลน์ • บันทึกอัตโนมัติ" % [pc.get("name", "ยังไม่ได้เลือก"), pc.get("outfit", "-")], 20, Color("#264653")))
 	var save := make_button("บันทึกเกมตอนนี้"); save.pressed.connect(save_game); v.add_child(save)
 	var reset := make_button("เริ่มเมืองใหม่"); reset.pressed.connect(reset_game.bind(v)); v.add_child(reset)
 	var close := make_button("ปิด"); close.pressed.connect(close_popup.bind(v)); v.add_child(close)
-func reset_game(v: VBoxContainer) -> void: state = starter_state(); selected = ""; close_popup(v); refresh()
+func reset_game(v: VBoxContainer) -> void:
+	state = starter_state(); selected = ""; close_popup(v); root_ui.queue_free(); root_ui = null; build_character_selection()
 
 func total_stored() -> int:
 	var total := 0
