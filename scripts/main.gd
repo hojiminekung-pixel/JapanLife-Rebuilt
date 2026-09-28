@@ -7,6 +7,7 @@ const DECORATION_PATH := "res://data/decorations.json"
 const QUEST_PATH := "res://data/quests.json"
 const CHARACTER_PATH := "res://data/characters.json"
 const NPC_PATH := "res://data/npcs.json"
+const BUILDING_STAFF_PATH := "res://data/building_staff.json"
 var font: Font
 var buildings: Array = []
 var decorations: Array = []
@@ -15,6 +16,7 @@ var player_characters: Array = []
 var staff_characters: Array = []
 var npc_data: Dictionary = {}
 var npc_sheet: Texture2D
+var building_staff_data: Dictionary = {}
 var state := {}
 var selected := ""
 var root_ui: Control
@@ -37,6 +39,7 @@ func _ready() -> void:
 	staff_characters = character_data.get("staff", [])
 	npc_data = load_dictionary(NPC_PATH)
 	npc_sheet = load("res://assets/characters/walking_npcs.svg")
+	building_staff_data = load_dictionary(BUILDING_STAFF_PATH)
 	player_sheet = load("res://assets/characters/player_characters.svg")
 	staff_sheet = load("res://assets/characters/staff_characters.svg")
 	load_game()
@@ -210,12 +213,26 @@ func place_road() -> void:
 func show_building_info(key: String) -> void:
 	var tile: Dictionary = state.tiles[key]; var d := definition_for(tile.kind); var v := popup(d.name)
 	v.add_child(make_label("ระดับ %d/%d • รายได้ %d เหรียญ/นาที\nรายได้ที่สะสม: %d" % [tile.level, d.get("max_level", 1), int(d.get("income",0)) * tile.level, int(tile.stored)], 20, Color("#264653")))
+	var assigned_staff := staff_for_building(str(tile.kind))
+	if not assigned_staff.is_empty():
+		v.add_child(make_label("👔 พนักงานประจำสถานที่: %s\nชุด: %s" % [assigned_staff.get("name", ""), assigned_staff.get("outfit", "")], 17, Color("#264653")))
 	if float(tile.stored) >= 1:
 		var collect := make_button("เก็บรายได้ %d 🪙" % int(tile.stored)); collect.pressed.connect(collect_income.bind(key, v)); v.add_child(collect)
 	if int(tile.level) < int(d.get("max_level", 1)):
 		var cost := int(d.cost) * int(tile.level)
 		var up := make_button("อัปเกรด (%d 🪙)" % cost); up.pressed.connect(upgrade.bind(key, cost, v)); v.add_child(up)
 	var close := make_button("ปิด"); close.pressed.connect(close_popup.bind(v)); v.add_child(close)
+
+func staff_for_building(building_id: String) -> Dictionary:
+	var staff_id := ""
+	for a in building_staff_data.get("assignments", []):
+		if str(a.get("building_id", "")) == building_id:
+			staff_id = str(a.get("staff_id", ""))
+			break
+	for staff in staff_characters:
+		if str(staff.get("id", "")) == staff_id:
+			return staff
+	return {}
 
 func collect_income(key: String, v: VBoxContainer) -> void:
 	var amount := int(state.tiles[key].stored); state.gold += amount; state.stats.gold += amount; state.tiles[key].stored = 0.0; close_popup(v); refresh()
