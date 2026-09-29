@@ -2,8 +2,8 @@
   "protocol": "japanlife-patch-v1",
   "game": "com.nubee.japanlife",
   "base_version": "1.5.12",
-  "server_version": "0.1.0",
-  "status": "ready-for-native-validation",
+  "server_version": "0.1.1",
+  "status": "mapdata000-modification-ready",
   "format": {
     "magic_hex": "20464e50",
     "format_version": "30303031",
@@ -14,5 +14,13 @@
   },
   "resource_count": 412,
   "map_range": "mapdata000.smf..mapdata234.smf",
-  "endpoint": "/functions/v1/legacy-api-full/patch.bin"
+  "modified_resources": {
+    "mapdata000.smf": {
+      "size": 28687,
+      "sha256": "62764616ea7bdf0c19c717750e4305e3180f4ec54e52432dbe22a9f85acee79d",
+      "change": "first matching little-endian object id 513 changed to existing object id 390; server recompresses with standard deflate"
+    }
+  },
+  "patch_endpoint": "/functions/v1/legacy-api-full/patch.bin",
+  "resource_endpoint": "/functions/v1/legacy-api-full/resource/<native_name>"
 }
