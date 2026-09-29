@@ -16,15 +16,16 @@ export default {
     }
 
     if (u.pathname === "/resource") {
-      const r = await fetch(SUPABASE_URL + "/functions/v1/world-life-resource-manifest");
-      return new Response(await r.text(), {status:r.status, headers:{...cors(),"Content-Type":"application/json; charset=utf-8"}});
+      return fetch(SUPABASE_URL + "/functions/v1/legacy-api-full/resource");
     }
 
     if (u.pathname.startsWith("/resource/")) {
       const name = decodeURIComponent(u.pathname.slice("/resource/".length));
       if (!/^[A-Za-z0-9._-]+\.smf$/.test(name))
         return new Response("Invalid resource name",{status:400,headers:cors()});
-      return fetch(SUPABASE_URL + "/storage/v1/object/public/world-life-resources/" + encodeURIComponent(name));
+      // Forward to the server resource endpoint so server-side map transformations
+      // (including mapdata000.smf) remain identical through both direct and gateway paths.
+      return fetch(SUPABASE_URL + "/functions/v1/legacy-api-full/resource/" + encodeURIComponent(name));
     }
 
     // Master-compatible JSON API: preserve every path and query string.
