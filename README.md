@@ -1,20 +1,19 @@
-# World Life
+# World-Life-Server
 
-เกมสร้างเมืองแบบ **clean-room** ที่พัฒนาด้วย Godot 4 สำหรับ Android และเล่นได้แบบออฟไลน์ทั้งหมด. ภาพทั้งหมดในรุ่นนี้เป็นไอคอน Unicode และงาน placeholder ดั้งเดิม; ไม่มีทรัพย์สิน โค้ด หรือระบบจากเกม Japan Life เดิม.
+This repository is **server / tooling / Master-data support only**.
 
-## เริ่มใช้งาน
+## Master baseline
 
-1. เปิด `project.godot` ด้วย Godot 4.3 หรือใหม่กว่า แล้วกด Run.
-2. เลือกช่องว่าง แล้วใช้แถบล่างเพื่อสร้างอาคาร ถนน หรือของตกแต่ง.
-3. แตะอาคารเพื่อเก็บรายได้และอัปเกรด. ความคืบหน้าบันทึกใน `user://japan_life_save.json` และคำนวณรายได้ขณะปิดเกม (สูงสุด 8 ชั่วโมง).
+The original **Master APK** is the sole game baseline. Game systems, maps, SMF resources, native library, NPCs, characters, buildings, vehicles, animations, textures, and other gameplay changes must be applied to the Master data path—not to a Godot recreation.
 
-ข้อมูล gameplay ที่ขยายได้อยู่ใน `data/*.json`; UI และระบบเกมอยู่ใน `scripts/main.gd`. ฟอนต์ Noto Sans Thai อยู่ใน `assets/fonts/` พร้อมใบอนุญาต SIL Open Font License ใน `licenses/`.
+The repository must not be treated as a replacement game project.
 
-## Android
+## Server layer
 
-`export_presets.cfg` ใช้ package id `com.hojiminekung.worldlife` และมี workflow GitHub Actions ที่ export debug APK แล้วอัปโหลดเป็น artifact.
+The repository contains the World-Life-Server support layer, including Cloudflare gateway, Supabase configuration, patch/resource tooling, and controlled resource manifests.
 
+No unverified native binary patch is published.
 
-## World-Life-Server
+## Validation rule
 
-The project is prepared to use the World-Life-Server gateway for server-delivered game data. The current verified server layer keeps the original Master resource files separate and exposes a controlled resource manifest. No unverified binary patch is published yet.
+Any Master modification must preserve the original resource format and pass integrity/package validation before it can be considered a release candidate.
