@@ -11,6 +11,10 @@ export default {
       return json({ok:true,server:"World-Life-Server",proxy:"wl",status:"online"});
     }
 
+    if (u.pathname === "/patch/patch.bin") {
+      return fetch(SUPABASE_URL + "/functions/v1/legacy-api-full/patch.bin");
+    }
+
     if (u.pathname === "/resource") {
       const r = await fetch(SUPABASE_URL + "/functions/v1/world-life-resource-manifest");
       return new Response(await r.text(), {status:r.status, headers:{...cors(),"Content-Type":"application/json; charset=utf-8"}});
