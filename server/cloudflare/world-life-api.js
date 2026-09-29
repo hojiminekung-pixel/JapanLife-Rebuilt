@@ -1,13 +1,6 @@
 const SUPABASE_URL = "https://hgsugqaswxxkrsalvkci.supabase.co";
 const FUNCTION_NAME = "legacy-api-full";
-
-const EMPTY_MANIFEST = {
-  protocol: "world-life-resource-v1",
-  game: "world-life",
-  server_version: "0.1.0",
-  status: "development",
-  resources: []
-};
+const MANIFEST_FUNCTION = "world-life-resource-manifest";
 
 export default {
   async fetch(request) {
@@ -29,13 +22,48 @@ export default {
       });
     }
 
-    // Resource manifest used by the rebuilt World Life client.
-    // Keep this endpoint stable while the real resource manifest is finalized.
     if (incoming.pathname === "/resource") {
-      return json(EMPTY_MANIFEST);
+      const manifestResponse = await fetch(
+        SUPABASE_URL + "/functions/v1/" + MANIFEST_FUNCTION
+      );
+
+      return new Response(await manifestResponse.text(), {
+        status: manifestResponse.status,
+        headers: {
+          ...corsHeaders(),
+          "Content-Type": "application/json; charset=utf-8"
+        }
+      });
     }
 
-    // Compatibility gateway for the legacy JSON path.
+    if (incoming.pathname.startsWith("/resource/")) {
+      const name = decodeURIComponent(
+        incoming.pathname.substring("/resource/".length)
+      );
+
+      if (!/^[A-Za-z0-9._-]+\.smf$/.test(name)) {
+        return new Response("Invalid resource name", {
+          status: 400,
+          headers: corsHeaders()
+        });
+      }
+
+      const storageUrl =
+        SUPABASE_URL +
+        "/storage/v1/object/public/world-life-resources/" +
+        encodeURIComponent(name);
+
+      const resourceResponse = await fetch(storageUrl);
+      const headers = new Headers(resourceResponse.headers);
+      headers.set("Access-Control-Allow-Origin", "*");
+      headers.set("Cache-Control", "public, max-age=86400");
+
+      return new Response(resourceResponse.body, {
+        status: resourceResponse.status,
+        headers
+      });
+    }
+
     const target =
       SUPABASE_URL +
       "/functions/v1/" +
@@ -71,8 +99,7 @@ function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "*",
-    "Access-Control-Allow-Methods": "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS",
-    "Cache-Control": "no-store"
+    "Access-Control-Allow-Methods": "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS"
   };
 }
 
