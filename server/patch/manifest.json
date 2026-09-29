@@ -3,6 +3,16 @@
   "game": "com.nubee.japanlife",
   "base_version": "1.5.12",
   "server_version": "0.1.0",
-  "status": "development",
-  "patches": []
+  "status": "ready-for-native-validation",
+  "format": {
+    "magic_hex": "20464e50",
+    "format_version": "30303031",
+    "format_flags_hex": "00240001",
+    "header_size": 64,
+    "entry_size": "32-byte SHA-256 + uint32 little-endian file size + NUL-terminated native filename",
+    "file_hash": "SHA-256 of the complete patch with bytes 0x18..0x3f zeroed; digest stored at 0x20..0x3f"
+  },
+  "resource_count": 412,
+  "map_range": "mapdata000.smf..mapdata234.smf",
+  "endpoint": "/functions/v1/legacy-api-full/patch.bin"
 }
