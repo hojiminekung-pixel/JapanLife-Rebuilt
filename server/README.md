@@ -1,6 +1,6 @@
-# Japan Life Server
+# World-Life-Server
 
-This directory defines the first server layer for the Japan Life rebuild.
+This directory defines the server layer for the World-Life Master baseline.
 
 ## Roles
 
