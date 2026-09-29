@@ -2,7 +2,7 @@ extends Node
 
 signal sync_finished(ok: bool, count: int)
 
-const GATEWAY_BASE := "https://worldlife-gateway.bomsronthai.workers.dev"
+const GATEWAY_BASE := "https://world-life-api.bomsronthai.workers.dev"
 const MANIFEST_URL := GATEWAY_BASE + "/resource"
 const CACHE_DIR := "user://world_life_resources"
 const CACHE_MANIFEST := "user://world_life_manifest.json"
