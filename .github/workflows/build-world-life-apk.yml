@@ -160,7 +160,7 @@ jobs:
 
                       String upstreamUrl;
                       if(path.startsWith("/resource/")){
-                          String name = path.substring("/resource/".length);
+                          String name = path.substring("/resource/".length());
                           upstreamUrl = "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/" + name;
                       } else {
                           String upstreamPath = path;
