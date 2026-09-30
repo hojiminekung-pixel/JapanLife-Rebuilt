@@ -44,7 +44,7 @@ jobs:
       - name: Decode original Master
         run: |
           set -e
-          apktool d -f -o decoded master.apk
+          apktool d -f --no-src -o decoded master.apk
           test -f decoded/AndroidManifest.xml
           test -f decoded/lib/armeabi/libKyotoLife.so
 
@@ -210,8 +210,9 @@ jobs:
           # Compile against the Android SDK and merge our class with the original DEX.
           javac -source 8 -target 8 -cp "$ANDROID_JAR" -d proxy-classes proxy-src/WorldLifeProxyProvider.java
           jar cf proxy.jar -C proxy-classes .
-          rm -rf merged-dex && mkdir merged-dex
-          "$D8" --min-api 16 --output merged-dex decoded/classes.dex proxy.jar
+          rm -rf original-dex merged-dex && mkdir original-dex merged-dex
+          unzip -p master.apk classes.dex > original-dex/classes.dex
+          "$D8" --min-api 16 --output merged-dex original-dex/classes.dex proxy.jar
           cp merged-dex/classes.dex decoded/classes.dex
 
       - name: Register startup provider
