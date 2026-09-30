@@ -164,17 +164,17 @@ jobs:
 
                       int code=c.getResponseCode();
                       String msg=c.getResponseMessage();
-                      out.write(("HTTP/1.1 "+code+" "+(msg==null?"OK":msg)+"\\r\\n").getBytes("ISO-8859-1"));
+                      out.write(("HTTP/1.1 "+code+" "+(msg==null?"OK":msg)+"\r\n").getBytes("ISO-8859-1"));
 
                       String ct=c.getHeaderField("Content-Type");
-                      if(ct!=null) out.write(("Content-Type: "+ct+"\\r\\n").getBytes("ISO-8859-1"));
+                      if(ct!=null) out.write(("Content-Type: "+ct+"\r\n").getBytes("ISO-8859-1"));
                       String ce=c.getHeaderField("Content-Encoding");
-                      if(ce!=null) out.write(("Content-Encoding: "+ce+"\\r\\n").getBytes("ISO-8859-1"));
+                      if(ce!=null) out.write(("Content-Encoding: "+ce+"\r\n").getBytes("ISO-8859-1"));
                       String cl=c.getHeaderField("Content-Length");
                       InputStream cin;
                       try { cin=c.getInputStream(); } catch(IOException ex) { cin=c.getErrorStream(); }
-                      if(cl!=null) out.write(("Content-Length: "+cl+"\\r\\n").getBytes("ISO-8859-1"));
-                      out.write("Connection: close\\r\\n\\r\\n".getBytes("ISO-8859-1"));
+                      if(cl!=null) out.write(("Content-Length: "+cl+"\r\n").getBytes("ISO-8859-1"));
+                      out.write("Connection: close\r\n\r\n".getBytes("ISO-8859-1"));
                       if(cin!=null){
                           byte[] buf=new byte[8192]; int n;
                           while((n=cin.read(buf))!=-1) out.write(buf,0,n);
@@ -189,13 +189,13 @@ jobs:
                   ByteArrayOutputStream b=new ByteArrayOutputStream();
                   int cur;
                   while((cur=in.read())!=-1){
-                      if(cur=='\\r'){
+                      if(cur=='\r'){
                           int next=in.read();
-                          if(next=='\\n') break;
+                          if(next=='\n') break;
                           if(next!=-1) b.write(next);
                           break;
                       }
-                      if(cur=='\\n') break;
+                      if(cur=='\n') break;
                       b.write(cur);
                   }
                   return b.size()==0 && cur==-1 ? null : new String(b.toByteArray(),"ISO-8859-1");
@@ -225,7 +225,7 @@ jobs:
           provider='<provider android:name="com.nubee.japanlife.WorldLifeProxyProvider" android:authorities="com.nubee.japanlife.worldlife.proxy" android:exported="false" android:initOrder="1000" />'
           assert marker in s
           assert provider not in s
-          s=s.replace(marker, provider+"\\n"+marker, 1)
+          s=s.replace(marker, provider+"\n"+marker, 1)
           p.write_text(s,encoding="utf-8")
           PY
 
