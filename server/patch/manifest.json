@@ -3,7 +3,7 @@
   "game": "com.nubee.japanlife",
   "base_version": "1.5.12",
   "server_version": "0.1.1",
-  "status": "mapdata000-modification-ready",
+  "status": "master-native-object-injection",
   "format": {
     "magic_hex": "20464e50",
     "format_version": "30303031",
@@ -14,13 +14,13 @@
   },
   "resource_count": 412,
   "map_range": "mapdata000.smf..mapdata234.smf",
-  "modified_resources": {
-    "mapdata000.smf": {
-      "size": 28687,
-      "sha256": "62764616ea7bdf0c19c717750e4305e3180f4ec54e52432dbe22a9f85acee79d",
-      "change": "first matching little-endian object id 513 changed to existing object id 390; server recompresses with standard deflate"
-    }
-  },
+  "modified_resources": {},
   "patch_endpoint": "/functions/v1/legacy-api-full/patch.bin",
-  "resource_endpoint": "/functions/v1/legacy-api-full/resource/<native_name>"
+  "resource_endpoint": "/functions/v1/legacy-api-full/resource/<native_name>",
+  "notes": [
+    "mapdata000.smf is kept as the original Master resource; no synthetic object-ID substitution is used.",
+    "City object placement is handled in the Master native layer via CMapDataManager::AddObjectInstance.",
+    "The patched native library adds Master building object ID 0 at map coordinates (50,50) during CMapDataManager::OnFirstStart.",
+    "Server packed-game-data placement is not fabricated because save.packed was not available."
+  ]
 }
