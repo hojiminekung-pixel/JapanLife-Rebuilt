@@ -16,7 +16,7 @@ export default {
     }
 
     if (u.pathname === "/resource") {
-      return fetch(SUPABASE_URL + "/functions/v1/legacy-api-full/resource");
+      return fetch(SUPABASE_URL + "/functions/v1/legacy-resource?name=font.smf");
     }
 
     if (u.pathname.startsWith("/resource/")) {
@@ -25,7 +25,7 @@ export default {
         return new Response("Invalid resource name",{status:400,headers:cors()});
       // Forward to the server resource endpoint so server-side map transformations
       // (including mapdata000.smf) remain identical through both direct and gateway paths.
-      return fetch(SUPABASE_URL + "/functions/v1/legacy-api-full/resource/" + encodeURIComponent(name));
+      return fetch(SUPABASE_URL + "/functions/v1/legacy-resource?name=" + encodeURIComponent(name));
     }
 
     // Master-compatible JSON API: preserve every path and query string.
