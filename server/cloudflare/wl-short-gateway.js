@@ -11,7 +11,7 @@ export default {
       return json({ok:true,server:"World-Life-Server",proxy:"wl",status:"online"});
     }
 
-    if (u.pathname === "/patch/patch.bin") {
+    if (u.pathname === "/patch.bin" || u.pathname === "/patch/patch.bin") {
       return fetch(SUPABASE_URL + "/functions/v1/legacy-api-full/patch.bin");
     }
 
