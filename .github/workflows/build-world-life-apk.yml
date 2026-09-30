@@ -37,9 +37,9 @@ jobs:
             head -c 200 /tmp/gateway-body || true
             echo
           done
-          curl -fsS "$GATEWAY/resource/data_building.smf" -o gateway-resource.smf
-          test -s gateway-resource.smf
-          echo "Gateway SMF resource fetch passed: $(wc -c < gateway-resource.smf) bytes"
+          curl -fsS "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/data_building.smf" -o storage-resource.smf
+          test -s storage-resource.smf
+          echo "World-Life resource storage fetch passed: $(wc -c < storage-resource.smf) bytes"
 
       - name: Install APK build tools
         run: |
@@ -158,11 +158,18 @@ jobs:
                           got+=n;
                       }
 
-                      String upstreamPath = path;
-                      if(!(path.startsWith("/resource/") || path.startsWith("/shop/") || path.startsWith("/legacy/") || path.startsWith("/legacy-api-full/"))){
-                          upstreamPath = "/legacy" + path;
+                      String upstreamUrl;
+                      if(path.startsWith("/resource/")){
+                          String name = path.substring("/resource/".length);
+                          upstreamUrl = "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/" + name;
+                      } else {
+                          String upstreamPath = path;
+                          if(!(path.startsWith("/shop/") || path.startsWith("/legacy/") || path.startsWith("/legacy-api-full/"))){
+                              upstreamPath = "/legacy" + path;
+                          }
+                          upstreamUrl = UPSTREAM + upstreamPath;
                       }
-                      URL u=new URL(UPSTREAM + upstreamPath);
+                      URL u=new URL(upstreamUrl);
                       HttpURLConnection c=(HttpURLConnection)u.openConnection();
                       c.setConnectTimeout(15000);
                       c.setReadTimeout(30000);
