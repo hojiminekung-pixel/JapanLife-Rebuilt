@@ -120,10 +120,13 @@ jobs:
                   try (ServerSocket ss = new ServerSocket()) {
                       ss.setReuseAddress(true);
                       ss.bind(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT));
-                      ExecutorService pool = Executors.newCachedThreadPool();
                       while (true) {
-                          final Socket s = ss.accept();
-                          pool.execute(() -> handle(s));
+                          final Socket client = ss.accept();
+                          Thread worker = new Thread(new Runnable() {
+                              @Override public void run() { handle(client); }
+                          }, "WorldLifeProxyClient");
+                          worker.setDaemon(true);
+                          worker.start();
                       }
                   } catch (Throwable ignored) {}
               }
