@@ -26,6 +26,20 @@ jobs:
           cp "$apk" master.apk
           ls -lh master.apk
 
+      - name: Save unmodified Master APK
+        run: |
+          set -e
+          cp master.apk World-Life-Master-Original.apk
+          sha256sum World-Life-Master-Original.apk
+          unzip -t World-Life-Master-Original.apk >/dev/null
+
+      - name: Upload unmodified Master APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: World-Life-Master-Original
+          path: World-Life-Master-Original.apk
+          retention-days: 14
+
       - name: Verify World-Life-Gateway
         run: |
           set -e
