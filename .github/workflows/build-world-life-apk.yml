@@ -26,6 +26,16 @@ jobs:
           cp "$apk" master.apk
           ls -lh master.apk
 
+      - name: Verify World-Life-Gateway
+        run: |
+          set -e
+          GATEWAY="https://worldlife-gateway.bomsronthai.workers.dev"
+          curl -fsS "$GATEWAY/legacy-api-full/test" | tee gateway-test.json
+          grep -q '"ok":true' gateway-test.json
+          curl -fsS "$GATEWAY/legacy-api-full/resource/data_building.smf" -o gateway-resource.smf
+          test -s gateway-resource.smf
+          echo "Gateway test and SMF resource fetch passed: $(wc -c < gateway-resource.smf) bytes"
+
       - name: Install APK build tools
         run: |
           set -e
@@ -88,7 +98,7 @@ jobs:
 
           public final class WorldLifeProxyProvider extends ContentProvider {
               private static final int PORT = 8765;
-              private static final String UPSTREAM = "https://hgsugqaswxxkrsalvkci.supabase.co/functions/v1/legacy-api-full";
+              private static final String UPSTREAM = "https://worldlife-gateway.bomsronthai.workers.dev/legacy-api-full";
               private static volatile boolean started;
 
               @Override public boolean onCreate() {
