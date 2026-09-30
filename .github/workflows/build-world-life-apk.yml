@@ -88,7 +88,7 @@ jobs:
 
           public final class WorldLifeProxyProvider extends ContentProvider {
               private static final int PORT = 8765;
-              private static final String UPSTREAM = "https://worldlife-gateway.bomsronthai.workers.dev";
+              private static final String UPSTREAM = "https://hgsugqaswxxkrsalvkci.supabase.co/functions/v1/legacy-api-full";
               private static volatile boolean started;
 
               @Override public boolean onCreate() {
