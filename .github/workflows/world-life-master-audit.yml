@@ -1,0 +1,62 @@
+name: World Life Master Audit
+
+on:
+  push:
+    paths:
+      - .github/workflows/world-life-master-audit.yml
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download stored Master
+        run: |
+          set -e
+          curl -fL --retry 3 --retry-delay 2 \
+            "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/world%20life.zip" \
+            -o master-outer.zip
+          unzip -t master-outer.zip
+
+      - name: Extract nested Master ZIP
+        run: |
+          set -e
+          mkdir outer inner
+          unzip -q master-outer.zip -d outer
+          find outer -maxdepth 2 -type f -print
+          inner_zip="$(find outer -type f -iname '*.zip' | head -n 1)"
+          test -n "$inner_zip"
+          cp "$inner_zip" inner/master-inner.zip
+          unzip -t inner/master-inner.zip
+          unzip -q inner/master-inner.zip -d inner/apk
+          find inner/apk -maxdepth 2 -type f -print
+
+      - name: Locate and inspect original APK
+        run: |
+          set -e
+          apk="$(find inner/apk -type f -name '*.apk' | head -n 1)"
+          test -n "$apk"
+          cp "$apk" World-Life-Master-original.apk
+          ls -lh World-Life-Master-original.apk
+          unzip -t World-Life-Master-original.apk >/tmp/apk-test.txt
+          cat /tmp/apk-test.txt | tail -n 3
+          mkdir -p native
+          unzip -l World-Life-Master-original.apk | grep -E 'libKyotoLife\\.so|AndroidManifest.xml|res/raw/' | head -n 80 > native/apk-layout.txt || true
+          unzip -q World-Life-Master-original.apk 'lib/*/libKyotoLife.so' -d native/extracted || true
+          : > native/server-strings.txt
+          for so in $(find native/extracted -type f -name 'libKyotoLife.so'); do
+            echo "===== $so =====" >> native/server-strings.txt
+            strings -a "$so" | grep -Ei 'https?://|www\\.|api|server|patch|resource|cdn|kyoto|japanlife|world.life|workers.dev' | sort -u >> native/server-strings.txt || true
+          done
+          echo "=== string matches ==="
+          cat native/server-strings.txt || true
+
+      - name: Upload audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-life-master-audit
+          path: |
+            World-Life-Master-original.apk
+            native/apk-layout.txt
+            native/server-strings.txt
+          retention-days: 7
