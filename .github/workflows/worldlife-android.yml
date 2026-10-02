@@ -20,7 +20,6 @@ jobs:
           test -f android-worldlife/settings.gradle
           test -f android-worldlife/build.gradle
           test -f android-worldlife/app/build.gradle
-          find android-worldlife -maxdepth 3 -type f | sort
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -31,9 +30,13 @@ jobs:
       - name: Build release APK
         working-directory: android-worldlife
         run: gradle --no-daemon :app:assembleRelease
+      - name: Verify APK
+        run: |
+          find android-worldlife/app/build/outputs -type f -name '*.apk' -print
+          test -n "$(find android-worldlife/app/build/outputs -type f -name '*.apk' -print -quit)"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: World-Life-0.1-APK
-          path: android-worldlife/app/build/outputs/apk/release/app-release.apk
+          path: android-worldlife/app/build/outputs/**/*.apk
           if-no-files-found: error
