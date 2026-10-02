@@ -4,28 +4,28 @@ on:
     paths:
       - 'android-worldlife/**'
   workflow_dispatch:
-    inputs:
-      ref:
-        description: 'Branch to build'
-        required: false
-        default: 'worldlife-newgame'
 permissions:
   contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref_name }}
-      - name: Set up Java
-        uses: actions/setup-java@v4
+          ref: worldlife-newgame
+          fetch-depth: 0
+      - name: Verify project files
+        run: |
+          echo "BUILD_REF=$(git rev-parse HEAD)"
+          test -f android-worldlife/settings.gradle
+          test -f android-worldlife/build.gradle
+          test -f android-worldlife/app/build.gradle
+          find android-worldlife -maxdepth 3 -type f | sort
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Install Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
       - name: Build release APK
