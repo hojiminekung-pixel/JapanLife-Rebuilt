@@ -1,0 +1,1 @@
+Build and sign installable World Life APK.
