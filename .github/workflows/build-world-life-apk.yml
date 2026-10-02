@@ -97,6 +97,18 @@ jobs:
           p.write_bytes(b)
           PY
 
+      - name: Verify native legacy endpoints are fully neutralized
+        run: |
+          set -euo pipefail
+          for h in 'japanlife.nubee.com' 'japanlifemainte.nubee.com' 'japanlifesave.nubee.com' 'jplife.nubee.com' 'st-jplife.nubee.com'; do
+            if grep -aFq "$h" decoded/lib/armeabi/libKyotoLife.so; then
+              echo "ERROR: legacy host still present after native patch: $h"
+              exit 1
+            fi
+          done
+          echo "Native legacy host scan passed"
+          echo "World-Life bridge target: 127.0.0.1:8765"
+      
       - name: Build embedded local gateway proxy
         run: |
           set -e
@@ -273,6 +285,12 @@ jobs:
           s=s.replace(marker, provider+"\n"+marker, 1)
           p.write_text(s,encoding="utf-8")
           PY
+
+      - name: Verify manifest contains World Life native bridge provider
+        run: |
+          set -e
+          grep -q "WorldLifeProxyProvider" decoded/AndroidManifest.xml
+          echo "Native bridge provider registered"
 
       - name: Rebuild, align and sign
         run: |
