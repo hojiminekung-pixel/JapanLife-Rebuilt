@@ -1,0 +1,49 @@
+name: World Life Master Audit Run 2
+on:
+  push:
+    paths:
+      - '.github/workflows/worldlife-master-audit-run2.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apktool unzip
+          curl -fL --retry 3 "https://github.com/skylot/jadx/releases/download/v1.5.1/jadx-1.5.1.zip" -o /tmp/jadx.zip
+          unzip -q /tmp/jadx.zip -d /tmp/jadx
+      - name: Download exact Master
+        run: |
+          set -e
+          curl -fL --retry 4 --retry-delay 2 "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/world%20life.zip" -o /tmp/outer.zip
+          mkdir -p /tmp/outer /tmp/inner
+          unzip -q /tmp/outer.zip -d /tmp/outer
+          z=$(find /tmp/outer -type f -iname '*.zip' | head -1)
+          test -n "$z"
+          unzip -q "$z" -d /tmp/inner
+          apk=$(find /tmp/inner -type f -name '*.apk' | head -1)
+          test -n "$apk"
+          cp "$apk" /tmp/master.apk
+          sha256sum /tmp/master.apk
+          unzip -t /tmp/master.apk >/dev/null
+      - name: Decode and audit
+        run: |
+          set -e
+          apktool d -f --no-src -o /tmp/decoded /tmp/master.apk
+          /tmp/jadx/bin/jadx --no-res --threads-count 2 -d /tmp/jadx-out /tmp/master.apk >/tmp/jadx.log 2>&1 || true
+          mkdir -p report
+          {
+            echo 'MASTER SHA256'; sha256sum /tmp/master.apk
+            echo 'APK DEX/NATIVE/PLAYER'; unzip -l /tmp/master.apk | grep -E 'classes.*\.dex|lib/.*/.*\.so|data_player\.smf' || true
+            echo 'LEGACY HOSTS'; grep -RaoE 'jplife\.nubee\.com|st-jplife\.nubee\.com|japanlife\.nubee\.com' /tmp/decoded 2>/dev/null | sort -u || true
+            echo 'LOGIN REFERENCES'; grep -RaniE 'facebook|twitter|renren|qq|weibo|oauth|login|password|email|account|auth|provider' /tmp/jadx-out 2>/dev/null | head -500 || true
+            echo 'NATIVE LOGIN REFERENCES'; find /tmp/decoded/lib -type f -name '*.so' -print -exec sh -c 'strings -a "$1" | grep -Ei "login|password|email|oauth|account|auth|jplife|nubee|shop|save|patch" | head -300' _ {} \; || true
+          } > report/master-audit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: World-Life-Master-Audit-Run2
+          path: report
+          retention-days: 14
