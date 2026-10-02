@@ -16,7 +16,6 @@ jobs:
           fetch-depth: 0
       - name: Verify project files
         run: |
-          echo "BUILD_REF=$(git rev-parse HEAD)"
           test -f android-worldlife/settings.gradle
           test -f android-worldlife/build.gradle
           test -f android-worldlife/app/build.gradle
@@ -30,13 +29,19 @@ jobs:
       - name: Build release APK
         working-directory: android-worldlife
         run: gradle --no-daemon :app:assembleRelease
-      - name: Verify APK
+      - name: Sign and align APK
+        shell: bash
         run: |
-          find android-worldlife/app/build/outputs -type f -name '*.apk' -print
-          test -n "$(find android-worldlife/app/build/outputs -type f -name '*.apk' -print -quit)"
+          set -e
+          SDK_TOOLS="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)"
+          KEYSTORE="$RUNNER_TEMP/worldlife-debug.keystore"
+          keytool -genkeypair -v -keystore "$KEYSTORE" -storepass android -keypass android             -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000             -dname "CN=World Life,O=Dukku,C=TH"
+          "$SDK_TOOLS/zipalign" -f 4             android-worldlife/app/build/outputs/apk/release/app-release-unsigned.apk             "$RUNNER_TEMP/worldlife-aligned.apk"
+          "$SDK_TOOLS/apksigner" sign --ks "$KEYSTORE" --ks-pass pass:android             --ks-key-alias androiddebugkey --key-pass pass:android             --out android-worldlife/app/build/outputs/apk/release/World-Life-0.1.apk             "$RUNNER_TEMP/worldlife-aligned.apk"
+          "$SDK_TOOLS/apksigner" verify --verbose android-worldlife/app/build/outputs/apk/release/World-Life-0.1.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: World-Life-0.1-APK
-          path: android-worldlife/app/build/outputs/**/*.apk
+          path: android-worldlife/app/build/outputs/apk/release/World-Life-0.1.apk
           if-no-files-found: error
