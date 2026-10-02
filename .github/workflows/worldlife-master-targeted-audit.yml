@@ -47,6 +47,16 @@ jobs:
             echo "EXACT LEGACY HOST REFERENCES IN DECOMPILED JAVA"
             grep -RniE 'jplife\\.nubee\\.com|st-jplife\\.nubee\\.com|japanlife\\.nubee\\.com' /tmp/jadx-out 2>/dev/null | head -200 || true
             echo
+            echo "GAME ACTIVITY AND SOCIAL CALL SITES"
+            for f in \
+              /tmp/jadx-out/sources/com/nubee/japanlife/GameActivity.java \
+              /tmp/jadx-out/sources/com/nubee/FBConnect/FacebookMgr.java \
+              /tmp/jadx-out/sources/com/nubee/RenrenConnect/RenrenMgr.java \
+              /tmp/jadx-out/sources/com/nubee/WeiboConnect/WeiboMgr.java \
+              /tmp/jadx-out/sources/com/nubee/TencentConnect/TencentMgr.java; do
+              if [ -f "$f" ]; then echo "### $f"; grep -n -E 'login|Login|Facebook|Renren|Weibo|Tencent|native|JNI|onActivityResult|startActivity|userId|user_id' "$f" | head -250 || true; fi
+            done
+            echo
             echo "SOCIAL/JAVA LOGIN CLASS LIST"
             grep -RilE 'facebook|renren|weibo|tencent|twitter|login|oauth|get_user_id|CGameServer|FacebookID' /tmp/jadx-out/sources 2>/dev/null | grep -Ev '/(org/apache|org/scribe|com/sun/mail|com/inmobi|com/facebook|com/twitter|com/renren|com/weibo|com/tencent)/' | head -300 || true
             echo
