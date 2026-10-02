@@ -72,6 +72,11 @@ jobs:
               strings -a -t x "$so" | grep -Ei -C 3 'jplife|st-jplife|japanlife|nubee|login|oauth|account|resource|shop|save|patch|http' | head -500 || true
             done
             echo
+            echo "FULL FACEBOOK/SESSION SOURCES"
+            for f in /tmp/jadx-out/sources/com/nubee/FBConnect/FacebookMgr.java /tmp/jadx-out/sources/com/nubee/FBConnect/Session.java; do
+              if [ -f "$f" ]; then echo "### $f"; cat "$f"; fi
+            done
+            echo
             echo "DEX STRING CONTEXT"
             strings -a -t x /tmp/decoded/classes.dex | grep -Ei -C 3 'jplife|st-jplife|japanlife|nubee|login|oauth|account|resource|shop|save|patch' | head -500 || true
           } > report/targeted-audit.txt
