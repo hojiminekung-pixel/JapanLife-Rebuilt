@@ -80,6 +80,13 @@ jobs:
           cat preaudit/manifest-components.txt
           echo '--- social strings ---'
           cat preaudit/social-strings.txt
+      - name: Upload Master pre-audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: World-Life-Master-PreAudit
+          path: preaudit
+          retention-days: 14
+
       - name: Decode original Master
         run: |
           set -e
