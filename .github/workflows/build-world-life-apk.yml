@@ -2,8 +2,6 @@ name: Build World Life Master APK
 
 on:
   push:
-    paths:
-      - .github/workflows/build-world-life-apk.yml
   workflow_dispatch:
 
 jobs:
