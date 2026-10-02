@@ -70,6 +70,16 @@ jobs:
           echo "D8=$D8" >> "$GITHUB_ENV"
           echo "ANDROID_JAR=$(find "$ANDROID_HOME/platforms" -name android.jar | sort -V | tail -n 1)" >> "$GITHUB_ENV"
 
+      - name: Audit Master launcher and social components
+        run: |
+          set -e
+          mkdir -p preaudit
+          apktool d -f --no-src -o preaudit/decoded master.apk >/dev/null
+          grep -E '<activity|<service|<receiver|<provider' preaudit/decoded/AndroidManifest.xml | head -300 > preaudit/manifest-components.txt || true
+          strings -a master.apk | grep -Ei 'facebook|renren|weibo|tencent|twitter|login|oauth|jplife|japanlife|nubee' | sort -u | head -500 > preaudit/social-strings.txt || true
+          cat preaudit/manifest-components.txt
+          echo '--- social strings ---'
+          cat preaudit/social-strings.txt
       - name: Decode original Master
         run: |
           set -e
