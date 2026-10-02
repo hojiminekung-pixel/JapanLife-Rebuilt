@@ -41,6 +41,9 @@ jobs:
             echo "MANIFEST PACKAGE/ACTIVITIES"
             grep -E 'package=|activity|service|receiver|provider' /tmp/decoded/AndroidManifest.xml | head -200 || true
             echo
+            echo "EXACT LEGACY HOST REFERENCES IN SMALI"
+            grep -RniE 'jplife\\.nubee\\.com|st-jplife\\.nubee\\.com|japanlife\\.nubee\\.com' /tmp/decoded/smali* 2>/dev/null | head -300 || true
+            echo
             echo "EXACT LEGACY HOST REFERENCES IN DECOMPILED JAVA"
             grep -RniE 'jplife\\.nubee\\.com|st-jplife\\.nubee\\.com|japanlife\\.nubee\\.com' /tmp/jadx-out 2>/dev/null | head -200 || true
             echo
