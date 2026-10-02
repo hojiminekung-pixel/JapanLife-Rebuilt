@@ -1,0 +1,80 @@
+name: World Life Master Deep Audit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/worldlife-master-deep-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download exact Master
+        run: |
+          set -e
+          curl -fL --retry 4 --retry-delay 2             "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/world%20life.zip"             -o outer.zip
+          mkdir outer inner
+          unzip -q outer.zip -d outer
+          inner_zip="$(find outer -type f -iname '*.zip' | head -n 1)"
+          test -n "$inner_zip"
+          unzip -q "$inner_zip" -d inner
+          apk="$(find inner -type f -name '*.apk' | head -n 1)"
+          test -n "$apk"
+          cp "$apk" master.apk
+          sha256sum master.apk
+          unzip -t master.apk >/dev/null
+
+      - name: Install analysis tools
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y apktool
+          JADX_VERSION="1.5.1"
+          curl -fL --retry 3             "https://github.com/skylot/jadx/releases/download/v$JADX_VERSION/jadx-$JADX_VERSION.zip"             -o jadx.zip
+          unzip -q jadx.zip -d jadx
+          test -x jadx/bin/jadx
+
+      - name: Decode APK
+        run: |
+          set -e
+          apktool d -f --no-src -o decoded master.apk
+          jadx/bin/jadx --no-res --threads-count 2 -d jadx-out master.apk >/tmp/jadx.log 2>&1 || {
+            cat /tmp/jadx.log
+            exit 1
+          }
+
+      - name: Produce deep compatibility report
+        run: |
+          set -e
+          mkdir -p report
+          {
+            echo "# World Life Master Deep Audit"
+            echo
+            echo "## APK"
+            sha256sum master.apk
+            unzip -l master.apk | grep -E 'classes.*\.dex|lib/.*/.*\.so|data_player\.smf' | head -100 || true
+            echo
+            echo "## Legacy domains"
+            grep -RaoE 'https?://[^"[:space:]\x00]+' decoded/lib decoded/assets decoded/smali* 2>/dev/null | sort -u | grep -Ei 'nubee|japanlife|worldlife|supabase|cloudflare' || true
+            echo
+            echo "## Login/provider references"
+            grep -RaniE 'facebook|twitter|renren|qq|weibo|oauth|login|password|email|account|auth|provider|sign[[:space:]_-]*in' jadx-out 2>/dev/null | head -500 || true
+            echo
+            echo "## Android components"
+            grep -nE 'activity|service|provider|receiver' decoded/AndroidManifest.xml | head -300 || true
+            echo
+            echo "## Native strings"
+            strings -a decoded/lib/armeabi/libKyotoLife.so 2>/dev/null | grep -Ei 'japanlife|nubee|login|password|email|oauth|account|auth|shop|save|resource|patch' | head -500 || true
+          } > report/master-deep-audit.txt
+
+          cp decoded/AndroidManifest.xml report/AndroidManifest.xml
+          find decoded/lib -type f -name '*.so' -exec sha256sum {} \; > report/native-sha256.txt
+          grep -RaoE 'japanlife\.nubee\.com|jplife\.nubee\.com|st-jplife\.nubee\.com' decoded 2>/dev/null | sort | uniq -c > report/legacy-hosts.txt || true
+
+      - name: Upload audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: World-Life-Master-Deep-Audit
+          path: report
+          retention-days: 14
