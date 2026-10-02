@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#7fcf88">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#eef7ef;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#24432a;touch-action:manipulation}button,input{font:inherit}button{border:0}.topbar{height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;background:#fff;box-shadow:0 2px 10px #0001;position:relative;z-index:3}.brand{display:flex;gap:7px;align-items:center}.brand b{font-size:20px}.brand small{font-size:11px;opacity:.55}.crown{color:#e4ae21}.status{font-size:11px;color:#637b67}.status span:first-child{color:#68a96f;margin-right:4px}.screen{display:none;min-height:calc(100vh - 58px);padding:18px 16px 28px}.screen.active{display:block}.hero{text-align:center;padding:36px 0 22px;position:relative;overflow:hidden}.hero h1{font-size:42px;margin:10px 0 3px;color:#2e6e3a;letter-spacing:-1px}.hero p{margin:0;color:#64816a}.hero-duck{margin:15px auto 0}.duck,.mini-duck{position:relative;background:#fff;border:5px solid #5e8e67;border-radius:52% 52% 45% 45%;width:130px;height:120px;box-shadow:0 10px 18px #32653a22}.duck:before,.mini-duck:before{content:"";position:absolute;width:48px;height:24px;background:#f5bd35;border-radius:50%;right:-24px;top:48px}.eye{position:absolute;width:10px;height:14px;background:#222;border-radius:50%;top:38px}.e1{left:37px}.e2{right:37px}.beak{position:absolute;right:-30px;top:55px;width:38px;height:18px;background:#ef9c31;border-radius:50%}.crownhat{position:absolute;top:-36px;left:42px;font-size:42px;color:#e2ad22;text-shadow:0 2px #8a6817}.panel{max-width:420px;margin:auto;background:#fff;border-radius:22px;padding:20px;box-shadow:0 8px 30px #32653a16}.panel h2{margin:0 0 4px}.muted{color:#74867a;font-size:13px}.panel input{width:100%;padding:14px;border:1px solid #d5e4d7;border-radius:14px;margin:9px 0}.primary,.secondary{width:100%;padding:14px;border-radius:14px;margin-top:8px;font-weight:700}.primary{background:#5fae69;color:#fff}.secondary{background:#e9f3ea;color:#376440}.wide{margin-top:20px}.screen-title{display:flex;justify-content:space-between;align-items:center}.screen-title h2{font-size:20px}.character-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.char-card{background:#fff;border:2px solid transparent;border-radius:18px;padding:13px 7px;color:#294a30}.char-card.selected{border-color:#6bb777}.char-card b,.char-card small{display:block}.char-card small{opacity:.6;font-size:11px;margin-top:3px}.mini-duck{width:80px;height:70px;border-width:3px;margin:8px auto 10px}.mini-duck:before{width:30px;height:15px;right:-17px;top:29px}.crown-duck .crownhat{top:-25px;left:25px;font-size:28px}.classic-duck{background:#fafafa}.work-duck{background:#8bb4d7}.city-wrap{position:relative;max-width:900px;margin:auto}.city-wrap canvas{width:100%;height:auto;display:block;border-radius:22px;background:#a8d99e;box-shadow:0 10px 30px #315f3822}.hud{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;background:#fffdfdcc;backdrop-filter:blur(5px);padding:10px 13px;border-radius:15px;font-size:14px}.hud small{display:block;opacity:.6}.coins{font-weight:800;color:#a06b12}.toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:#263d2bd9;color:white;padding:9px 14px;border-radius:20px;opacity:0;transition:.2s;pointer-events:none}.toast.show{opacity:1}.bottom-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;max-width:900px;margin:10px auto 0}.bottom-nav button{padding:9px 3px;border-radius:14px;background:#fff;color:#38563e;font-size:19px}.bottom-nav span{display:block;font-size:10px;margin-top:2px}.drawer{position:fixed;inset:0;background:#0006;display:none;align-items:flex-end;z-index:10}.drawer.open{display:flex}.drawer-card{background:#fff;width:100%;max-height:75vh;border-radius:25px 25px 0 0;padding:22px 18px;position:relative;overflow:auto}.close{position:absolute;right:14px;top:10px;background:#edf5ee;border-radius:50%;width:34px;height:34px;font-size:22px}.drawer-card h2{margin-top:0}.item{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #edf1ed;padding:13px 0}.item button{background:#68ad70;color:#fff;border-radius:10px;padding:7px 11px}.quest.done{opacity:.55}.sparkles{position:absolute;inset:0;background-image:radial-gradient(#f5c84b 1px,transparent 1px);background-size:24px 24px;opacity:.16}
+@media(max-width:380px){.character-grid{gap:6px}.char-card{padding:8px 4px}.hero h1{font-size:36px}}
+
+</style>
+<title>World Life</title>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><span class="crown">♛</span><b>World Life</b><small>0.1</small></div>
+    <div class="status"><span id="onlineDot">●</span><span id="onlineText">Offline-ready</span></div>
+  </header>
+  <main>
+    <section id="home" class="screen active">
+      <div class="hero">
+        <div class="sparkles"></div>
+        <div class="duck hero-duck"><div class="crownhat">♛</div><div class="eye e1"></div><div class="eye e2"></div><div class="beak"></div></div>
+        <h1>World Life</h1><p>Your city. Your life. Your world.</p>
+      </div>
+      <div class="panel login-panel">
+        <h2>Welcome</h2><p class="muted">Email login only. Your local save works even without internet.</p>
+        <input id="email" type="email" inputmode="email" placeholder="Email / Gmail" autocomplete="email">
+        <input id="password" type="password" minlength="6" placeholder="Password (6+ characters)" autocomplete="current-password">
+        <button id="loginBtn" class="primary">Sign in</button>
+        <button id="signupBtn" class="secondary">Create account</button>
+        <button data-go="character" class="secondary">Play offline</button>
+      </div>
+    </section>
+
+    <section id="character" class="screen">
+      <div class="screen-title"><h2>Choose your character</h2><span id="coinPreview">1000 ¥</span></div>
+      <div class="character-grid">
+        <button class="char-card selected" data-char="crown"><div class="mini-duck crown-duck"><div class="crownhat">♛</div></div><b>Crown Duck</b><small>World Life</small></button>
+        <button class="char-card" data-char="classic"><div class="mini-duck classic-duck"></div><b>Classic Duck</b><small>Resident</small></button>
+        <button class="char-card" data-char="work"><div class="mini-duck work-duck"></div><b>Work Duck</b><small>Employee</small></button>
+      </div>
+      <button id="startBtn" class="primary wide">Enter the city</button>
+    </section>
+
+    <section id="game" class="screen">
+      <div class="city-wrap">
+        <canvas id="world" width="900" height="620"></canvas>
+        <div class="hud"><div><b id="playerName">Crown Duck</b><small id="mood">Happy</small></div><div class="coins">¥ <span id="coins">1000</span></div></div>
+        <div class="toast" id="toast"></div>
+      </div>
+      <nav class="bottom-nav">
+        <button data-panel="quests">📜<span>Quests</span></button>
+        <button data-panel="shop">🛍️<span>Shop</span></button>
+        <button data-panel="inventory">🎒<span>Bag</span></button>
+        <button data-panel="save">☁️<span>Save</span></button>
+      </nav>
+    </section>
+  </main>
+
+  <div id="drawer" class="drawer"><div class="drawer-card"><button id="closeDrawer" class="close">×</button><div id="drawerContent"></div></div></div>
+</div>
+<script>window.WORLD_LIFE_CONFIG={
+  apiBase:'https://worldlife-gateway.bomsronthai.workers.dev',
+  healthPath:'/health',
+  gameApiPath:'/game',
+  shopApiPath:'/shop-api',
+  supabaseUrl:'https://hgsugqaswxxkrsalvkci.supabase.co',
+  supabaseKey:'sb_publishable_6WqK57tB2wTsEivhoAlQCA_9xOlyehA',
+  storageKey:'worldlife-new-v2',
+  version:'0.1'
+};
+
+</script><script>const CFG=window.WORLD_LIFE_CONFIG;
+const S={coins:1000,character:'crown',name:'Crown Duck',mood:'Happy',items:[],quests:[{id:1,t:'Explore the city',r:100,done:false},{id:2,t:'Visit the shop',r:150,done:false},{id:3,t:'Save your game',r:200,done:false}]};
+const AUTH={access:null,refresh:null,user:null,profile:null};
+const $=id=>document.getElementById(id);
+const toast=(m)=>{const e=$('toast');if(!e)return;e.textContent=m;e.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>e.classList.remove('show'),1700)};
+const localSave=()=>{localStorage.setItem(CFG.storageKey,JSON.stringify(S));render()};
+const localLoad=()=>{try{const x=JSON.parse(localStorage.getItem(CFG.storageKey)||'{}');Object.assign(S,x)}catch{}render()};
+function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');if(id==='game')startWorld()}
+function render(){if($('coins'))$('coins').textContent=S.coins;if($('coinPreview'))$('coinPreview').textContent=S.coins+' ¥';if($('playerName'))$('playerName').textContent=S.name;if($('mood'))$('mood').textContent=S.mood;document.querySelectorAll('.char-card').forEach(b=>b.classList.toggle('selected',b.dataset.char===S.character))}
+function authHeaders(){return {'apikey':CFG.supabaseKey,'Content-Type':'application/json',...(AUTH.access?{Authorization:'Bearer '+AUTH.access}:{})}}
+async function sb(path,opts={}){const r=await fetch(CFG.supabaseUrl+path,{...opts,headers:{...authHeaders(),...(opts.headers||{})}});let d=null;try{d=await r.json()}catch{}if(!r.ok)throw new Error(d?.msg||d?.message||d?.error_description||d?.error||('HTTP '+r.status));return d}
+async function signup(email,password){return sb('/auth/v1/signup',{method:'POST',body:JSON.stringify({email,password})})}
+async function signin(email,password){return sb('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password})})}
+async function refreshSession(){const rt=localStorage.getItem('worldlife-refresh');if(!rt)return false;try{const d=await sb('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:rt})});AUTH.access=d.access_token;AUTH.refresh=d.refresh_token||rt;AUTH.user=d.user;localStorage.setItem('worldlife-refresh',AUTH.refresh);return true}catch{localStorage.removeItem('worldlife-refresh');return false}}
+async function loadProfile(){if(!AUTH.access)return null;try{const d=await fetch(CFG.apiBase+CFG.gameApiPath+'/profile',{headers:{Authorization:'Bearer '+AUTH.access,apikey:CFG.supabaseKey}}).then(r=>r.json());AUTH.profile=d.profile||null;return AUTH.profile}catch{return null}}
+async function onlineHealth(){try{const r=await fetch(CFG.apiBase+CFG.healthPath,{cache:'no-store'});if(r.ok){$('onlineDot').textContent='●';$('onlineText').textContent='Online';return true}}catch{}$('onlineDot').textContent='●';$('onlineText').textContent='Offline-ready';return false}
+async function serverLoad(){if(!AUTH.access)return false;try{const r=await fetch(CFG.apiBase+CFG.gameApiPath+'/load',{headers:{Authorization:'Bearer '+AUTH.access,apikey:CFG.supabaseKey}});const d=await r.json();if(d.ok&&d.save?.state){Object.assign(S,d.save.state);localSave();return true}return false}catch{return false}}
+async function serverSave(){if(!AUTH.access)return false;try{const r=await fetch(CFG.apiBase+CFG.gameApiPath+'/save',{method:'POST',headers:{Authorization:'Bearer '+AUTH.access,apikey:CFG.supabaseKey,'Content-Type':'application/json'},body:JSON.stringify({state:S})});const d=await r.json();return !!d.ok}catch{return false}}
+async function save(){localSave();if(AUTH.access&&AUTH.profile?.status==='approved'){const ok=await serverSave();toast(ok?'Saved online + on this device':'Saved on this device; online save unavailable')}else toast('Saved on this device')}
+async function loginFlow(){const email=$('email').value.trim(),password=$('password').value; if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)||password.length<6){toast('Enter a valid email and password (6+ characters)');return} $('loginBtn').disabled=true;try{const d=await signin(email,password);AUTH.access=d.access_token;AUTH.refresh=d.refresh_token;AUTH.user=d.user;localStorage.setItem('worldlife-refresh',AUTH.refresh);const p=await loadProfile();if(p&&p.status==='rejected'){toast('This account was rejected');return}if(p&&p.status==='suspended'){toast('This account is suspended');return}localStorage.setItem('worldlife-email',email);await serverLoad();show('character');toast(p?.status==='approved'?'Welcome back':'Email verified; waiting for approval')}catch(e){toast('Login failed: '+e.message)}finally{$('loginBtn').disabled=false}}
+async function signupFlow(){const email=$('email').value.trim(),password=$('password').value;if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)||password.length<6){toast('Enter a valid email and password (6+ characters)');return}$('signupBtn').disabled=true;try{const d=await signup(email,password);if(d.access_token){AUTH.access=d.access_token;AUTH.refresh=d.refresh_token;AUTH.user=d.user;localStorage.setItem('worldlife-refresh',AUTH.refresh);await loadProfile()}toast(d.user?.email_confirmed_at?'Account created.':'Check your email to confirm the account')}catch(e){toast('Sign-up failed: '+e.message)}finally{$('signupBtn').disabled=false}}
+function openDrawer(type){let c='';if(type==='quests')c='<h2>Quests</h2>'+S.quests.map(q=>`<div class="item quest ${q.done?'done':''}"><div><b>${q.done?'✓ ':''}${q.t}</b><small>Reward ${q.r} ¥</small></div>${q.done?'':`<button onclick="completeQuest(${q.id})">Do</button>`}</div>`).join('');if(type==='shop')c='<h2>Shop</h2><div id="shopRemote"><p class="muted">Loading shop…</p></div>';if(type==='inventory')c='<h2>Inventory</h2>'+(S.items.length?S.items.map(x=>`<div class="item"><b>🎒 ${x}</b></div>`).join(''):'<p class="muted">Your bag is empty.</p>');if(type==='save')c='<h2>World Life Save</h2><p class="muted">Local save is always available. Approved accounts also sync to the World Life server.</p><button class="primary" onclick="save()">Save now</button><p id="netInfo" class="muted">Checking…</p>'; $('drawerContent').innerHTML=c;$('drawer').classList.add('open');if(type==='shop')loadShop();if(type==='save')checkSaveStatus()}
+async function loadShop(){const box=$('shopRemote');try{const r=await fetch(CFG.apiBase+CFG.shopApiPath+'/products',{headers:{apikey:CFG.supabaseKey}});const d=await r.json();if(!d.ok)throw new Error(d.error||'shop unavailable');box.innerHTML=(d.products||[]).map(p=>`<div class="item"><div><b>${p.name}</b><small>${p.description||''} · ${p.price_minor/100} ${p.currency}</small></div><button onclick="createOrder('${p.product_code}')">Order</button></div>`).join('')||'<p class="muted">No active products.</p>'}catch(e){box.innerHTML='<p class="muted">Shop is temporarily unavailable.</p>'}}
+async function createOrder(code){if(!AUTH.access||AUTH.profile?.status!=='approved'){toast('Approved account required for online orders');return}try{const r=await fetch(CFG.apiBase+CFG.shopApiPath+'/orders',{method:'POST',headers:{apikey:CFG.supabaseKey,Authorization:'Bearer '+AUTH.access,'Content-Type':'application/json'},body:JSON.stringify({product_code:code})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'order failed');toast('Order created: '+d.order.order_code);openDrawer('shop')}catch(e){toast('Order failed: '+e.message)}}
+function checkSaveStatus(){const e=$('netInfo');if(!e)return;e.textContent=AUTH.profile?.status==='approved'?'Online save enabled for this account.':'Offline/local save only until account approval.'}
+function completeQuest(id){const q=S.quests.find(x=>x.id===id);if(!q||q.done)return;q.done=true;S.coins+=q.r;if(id===1)S.mood='Excited';localSave();openDrawer('quests');toast('Quest complete +'+q.r+' ¥')}
+function buy(n,p){if(S.coins<p){toast('Not enough coins');return}S.coins-=p;S.items.push(n);localSave();openDrawer('shop');toast('Bought '+n)}
+$('loginBtn').onclick=loginFlow;$('signupBtn').onclick=signupFlow;document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go));document.querySelectorAll('.char-card').forEach(b=>b.onclick=()=>{document.querySelectorAll('.char-card').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');S.character=b.dataset.char;S.name=b.querySelector('b').textContent;render()});$('startBtn').onclick=async()=>{localSave();if(AUTH.profile?.status!=='approved'&&AUTH.access)toast('Playing offline until approval');else if(AUTH.access)await serverSave();show('game');toast('Welcome to World Life')};document.querySelectorAll('.bottom-nav button').forEach(b=>b.onclick=()=>openDrawer(b.dataset.panel));$('closeDrawer').onclick=()=>$('drawer').classList.remove('open');$('drawer').onclick=e=>{if(e.target.id==='drawer')$('drawer').classList.remove('open')};
+let ctx,canvas,px=450,py=470,touch={};function startWorld(){canvas=$('world');ctx=canvas.getContext('2d');if(!canvas._bound){canvas._bound=1;canvas.addEventListener('pointerdown',e=>{touch.x=e.offsetX;touch.y=e.offsetY});canvas.addEventListener('pointerup',e=>{let dx=e.offsetX-touch.x,dy=e.offsetY-touch.y;if(Math.abs(dx)+Math.abs(dy)>15){px=Math.max(70,Math.min(830,px+dx*1.3));py=Math.max(80,Math.min(560,py+dy*1.3));S.mood='Happy';localSave()}else interact(e.offsetX,e.offsetY)});requestAnimationFrame(loop)}}
+function interact(x,y){if(y<220&&x>650){completeQuest(1);toast('You explored the park!')}else if(y>300&&y<500&&x<300){openDrawer('shop')}else{S.mood='Curious';toast('The city is full of little stories')}}function loop(){draw();requestAnimationFrame(loop)}function draw(){let w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#a9d89d';ctx.fillRect(0,0,w,h);ctx.fillStyle='#8ac38c';ctx.fillRect(0,0,w,85);ctx.fillStyle='#c9e7bd';ctx.fillRect(0,85,w,535);ctx.strokeStyle='#e8d7ae';ctx.lineWidth=65;ctx.beginPath();ctx.moveTo(40,420);ctx.lineTo(860,150);ctx.stroke();ctx.lineWidth=42;ctx.strokeStyle='#f5ead0';ctx.beginPath();ctx.moveTo(120,90);ctx.lineTo(760,560);ctx.stroke();building(90,110,170,130,'Home');building(600,115,210,145,'Shop');building(365,350,175,110,'Cafe');tree(100,270);tree(760,285);tree(720,450);tree(180,500);drawDuck(px,py,S.character)}function building(x,y,w,h,t){ctx.fillStyle='#f4d8ae';ctx.fillRect(x,y,w,h);ctx.fillStyle='#d07b62';ctx.fillRect(x-8,y-18,w+16,25);ctx.fillStyle='#fff';ctx.fillRect(x+25,y+35,42,36);ctx.fillRect(x+w-67,y+35,42,36);ctx.fillStyle='#704a38';ctx.font='bold 20px system-ui';ctx.fillText(t,x+15,y+h-18)}function tree(x,y){ctx.fillStyle='#6eaa61';ctx.beginPath();ctx.arc(x,y,32,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7d5739';ctx.fillRect(x-6,y+20,12,35)}function drawDuck(x,y,type){ctx.save();ctx.translate(x,y);ctx.fillStyle=type==='work'?'#8fb9d9':'#fff';ctx.strokeStyle='#5b8b64';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(0,0,34,29,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#f0a02e';ctx.beginPath();ctx.ellipse(31,2,16,8,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#222';ctx.beginPath();ctx.arc(-10,-8,3,0,Math.PI*2);ctx.arc(10,-8,3,0,Math.PI*2);ctx.fill();if(type==='crown'){ctx.fillStyle='#e1ad22';ctx.font='27px serif';ctx.fillText('♛',-15,-32)}ctx.restore()}
+async function boot(){localLoad();await onlineHealth();if(await refreshSession()){await loadProfile();await serverLoad();}render()}boot();
+
+</script>
+</body>
+</html>
