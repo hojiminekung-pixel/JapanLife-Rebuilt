@@ -13,7 +13,8 @@ jobs:
             "https://worldlife-gateway.bomsronthai.workers.dev/resource/data_building.smf" \
             "https://worldlife-gateway.bomsronthai.workers.dev/legacy-api-full/test" \
             "https://worldlife-gateway.bomsronthai.workers.dev/legacy-api-full/resource/data_building.smf" \
-            "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/data_building.smf"; do
+            "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/data_building.smf" \
+            "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/data_building.smf"; do
             echo "=== $u" >> result.txt
             curl -sS -D /tmp/h -o /tmp/b -w 'HTTP=%{http_code} SIZE=%{size_download}\n' "$u" >> result.txt 2>&1
             head -n 8 /tmp/h >> result.txt 2>&1
