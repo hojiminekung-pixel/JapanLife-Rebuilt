@@ -344,3 +344,5 @@ jobs:
           name: World-Life-0.1-Server-Connected
           path: World-Life-0.1-Server-Connected.apk
           retention-days: 14
+
+# resource bucket corrected: world-life-resources
