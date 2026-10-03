@@ -109,26 +109,76 @@ jobs:
           path: World-Life-0.1-Master-Baseline.apk
           retention-days: 14
 
-      - name: Rebuild, align and sign
+      - name: Patch only fixed-length World Life endpoints
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              b"japanlife.nubee.com": b"wl-server.pages.dev",
+              b"d3p9l6k6r2a1z7.cloudfront.net": b"worldlife-resources.pages.dev",
+          }
+
+          root = Path("decoded")
+          totals = {k: 0 for k in replacements}
+
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+              data = path.read_bytes()
+              original = data
+              for old, new in replacements.items():
+                  if len(old) != len(new):
+                      raise SystemExit(f"length mismatch: {old!r} -> {new!r}")
+                  count = data.count(old)
+                  if count:
+                      data = data.replace(old, new)
+                      totals[old] += count
+              if data != original:
+                  path.write_bytes(data)
+
+          print("Endpoint replacement counts:", totals)
+          if totals[b"japanlife.nubee.com"] == 0:
+              raise SystemExit("ERROR: original API hostname was not found")
+          if totals[b"d3p9l6k6r2a1z7.cloudfront.net"] == 0:
+              raise SystemExit("ERROR: original patch CDN hostname was not found")
+
+          for old in replacements:
+              for path in root.rglob("*"):
+                  if path.is_file() and old in path.read_bytes():
+                      raise SystemExit(f"ERROR: old hostname remains in {path}")
+          print("Fixed-length endpoint patch passed.")
+          PY
+
+      - name: Verify patched native library and manifest
+        run: |
+          set -euo pipefail
+          test -f decoded/lib/armeabi/libKyotoLife.so
+          strings -a decoded/lib/armeabi/libKyotoLife.so | grep -F "wl-server.pages.dev"
+          strings -a decoded/lib/armeabi/libKyotoLife.so | grep -F "worldlife-resources.pages.dev"
+          if strings -a decoded/lib/armeabi/libKyotoLife.so | grep -E "japanlife\.nubee\.com|d3p9l6k6r2a1z7\.cloudfront\.net"; then
+            echo "ERROR: old native endpoint remains"
+            exit 1
+          fi
+          echo "Native endpoint verification passed."
+
+      - name: Rebuild, align and sign World Life Online-Compatible APK
         run: |
           set -e
-          apktool b decoded -o world-life-master-unsigned.apk
-          "$BUILD_TOOLS/zipalign" -f -p 4 world-life-master-unsigned.apk world-life-master-aligned.apk
-          keytool -genkeypair -v -keystore world-life-debug.keystore \
-            -storepass android -keypass android -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=World Life, O=World-Life-Server, C=TH"
-          "$BUILD_TOOLS/apksigner" sign --ks world-life-debug.keystore \
-            --ks-pass pass:android --key-pass pass:android \
-            --out World-Life-0.1-Server-Connected.apk world-life-master-aligned.apk
-          "$BUILD_TOOLS/apksigner" verify --verbose World-Life-0.1-Server-Connected.apk
-          ls -lh World-Life-0.1-Server-Connected.apk
+          apktool b decoded -o world-life-online-unsigned.apk
+          "$BUILD_TOOLS/zipalign" -f -p 4 world-life-online-unsigned.apk world-life-online-aligned.apk
+          keytool -genkeypair -v -keystore world-life-debug.keystore             -storepass android -keypass android -alias androiddebugkey             -keyalg RSA -keysize 2048 -validity 10000             -dname "CN=World Life, O=World-Life-Server, C=TH"
+          "$BUILD_TOOLS/apksigner" sign --ks world-life-debug.keystore             --ks-pass pass:android --key-pass pass:android             --out World-Life-0.1-Online-Compatible.apk world-life-online-aligned.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose World-Life-0.1-Online-Compatible.apk
+          sha256sum World-Life-0.1-Online-Compatible.apk
+          ls -lh World-Life-0.1-Online-Compatible.apk
 
-      - name: Upload playable APK
+      - name: Upload online-compatible APK
         uses: actions/upload-artifact@v4
         with:
-          name: World-Life-0.1-Server-Connected
-          path: World-Life-0.1-Server-Connected.apk
+          name: World-Life-0.1-Online-Compatible
+          path: World-Life-0.1-Online-Compatible.apk
           retention-days: 14
 
 # resource bucket corrected: world-life-resources
