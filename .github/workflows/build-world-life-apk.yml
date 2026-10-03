@@ -199,6 +199,7 @@ JAVA
           "Initialise":"""    .method public static Initialise(Landroid/app/Activity;)Z
               .locals 1
               sput-object p0, Lcom/nubee/FBConnect/FacebookMgr;->context:Landroid/app/Activity;
+              invoke-static {}, Lcom/nubee/japanlife/WorldLifeProxy;->start()V
               const/4 v0, 0x1
               return v0
           .end method""",
@@ -290,6 +291,23 @@ JAVA
               const/4 v0, 0x0
               return v0
           .end method"""
+          ,
+          "Logout":"""    .method public static Logout()V
+              .locals 3
+              sget-object v0, Lcom/nubee/FBConnect/FacebookMgr;->context:Landroid/app/Activity;
+              if-eqz v0, :done
+              const-string v1, "worldlife_auth"
+              const/4 v2, 0x0
+              invoke-virtual {v0, v1, v2}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+              move-result-object v1
+              invoke-interface {v1}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+              move-result-object v1
+              invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->clear()Landroid/content/SharedPreferences$Editor;
+              move-result-object v1
+              invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
+          :done
+              return-void
+          .end method"""
           }
           for name,new in methods.items():
               pat=r'(?ms)^\s*\.method [^\n]*\s'+re.escape(name)+r'\([^\n]*\).*?^\s*\.end method'
@@ -317,188 +335,102 @@ JAVA
           p.write_text(s)
           PY
 
-      - name: Build embedded local gateway proxy
+      - name: Build lazy local gateway proxy
         run: |
-          set -e
+          set -euo pipefail
           mkdir -p proxy-src proxy-classes proxy-dex
-          cat > proxy-src/WorldLifeProxyProvider.java <<'JAVA'
+          cat > proxy-src/WorldLifeProxy.java <<'JAVA'
           package com.nubee.japanlife;
-
-          import android.content.ContentProvider;
-          import android.content.ContentValues;
-          import android.database.Cursor;
-          import android.net.Uri;
-          import android.os.ParcelFileDescriptor;
-
           import java.io.*;
           import java.net.*;
           import java.util.*;
-          
-
-          public final class WorldLifeProxyProvider extends ContentProvider {
-              private static final int PORT = 8765;
-              private static final String UPSTREAM = "https://worldlife-gateway.bomsronthai.workers.dev";
+          public final class WorldLifeProxy {
+              private static final int PORT=8765;
+              private static final String UPSTREAM="https://worldlife-gateway.bomsronthai.workers.dev";
               private static volatile boolean started;
-
-              @Override public boolean onCreate() {
-                  if (!started) {
-                      started = true;
-                      Thread t = new Thread(new Runnable() { public void run() { serve(); } }, "WorldLifeProxy");
-                      t.setDaemon(true);
-                      t.start();
-                  }
-                  return true;
+              public static synchronized void start(){
+                  if(started)return; started=true;
+                  Thread t=new Thread(new Runnable(){public void run(){serve();}},"WorldLifeProxy");
+                  t.setDaemon(true); t.start();
               }
-
-              private static void serve() {
-                  try (ServerSocket ss = new ServerSocket()) {
+              private static void serve(){
+                  try{
+                      ServerSocket ss=new ServerSocket();
                       ss.setReuseAddress(true);
-                      ss.bind(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT));
-                      while (true) {
-                          final Socket client = ss.accept();
-                          Thread worker = new Thread(new Runnable() {
-                              @Override public void run() { handle(client); }
-                          }, "WorldLifeProxyClient");
-                          worker.setDaemon(true);
-                          worker.start();
+                      ss.bind(new InetSocketAddress(InetAddress.getByName("127.0.0.1"),PORT));
+                      while(true){
+                          final Socket client=ss.accept();
+                          Thread w=new Thread(new Runnable(){public void run(){handle(client);}},"WorldLifeProxyClient");
+                          w.setDaemon(true); w.start();
                       }
-                  } catch (Throwable ignored) {}
+                  }catch(Throwable ignored){}
               }
-
-              private static void handle(Socket s) {
-                  try (Socket sock=s) {
-                      sock.setSoTimeout(30000);
-                      BufferedInputStream in=new BufferedInputStream(sock.getInputStream());
-                      OutputStream out=sock.getOutputStream();
-
+              private static void handle(Socket s){
+                  try{
+                      s.setSoTimeout(30000);
+                      BufferedInputStream in=new BufferedInputStream(s.getInputStream());
+                      OutputStream out=s.getOutputStream();
                       String requestLine=readLine(in);
-                      if(requestLine==null || requestLine.length()==0) return;
+                      if(requestLine==null||requestLine.length()==0)return;
                       String[] rp=requestLine.split(" ");
-                      if(rp.length<2) return;
-                      String method=rp[0];
-                      String path=rp[1];
-
-                      Map<String,String> headers=new LinkedHashMap<>();
+                      if(rp.length<2)return;
+                      String method=rp[0],path=rp[1];
+                      Map<String,String> headers=new LinkedHashMap<String,String>();
                       String line;
-                      while((line=readLine(in))!=null && !line.isEmpty()){
-                          int c=line.indexOf(':');
-                          if(c>0) headers.put(line.substring(0,c).trim(),line.substring(c+1).trim());
+                      while((line=readLine(in))!=null&&!line.isEmpty()){
+                          int c=line.indexOf(':'); if(c>0)headers.put(line.substring(0,c).trim(),line.substring(c+1).trim());
                       }
-
-                      int len=0;
-                      try { len=Integer.parseInt(headers.getOrDefault("Content-Length","0")); } catch(Exception ignored){}
-                      byte[] body=new byte[len];
-                      int got=0;
-                      while(got<len){
-                          int n=in.read(body,got,len-got);
-                          if(n<0) break;
-                          got+=n;
-                      }
-
+                      int len=0; try{len=Integer.parseInt(headers.containsKey("Content-Length")?headers.get("Content-Length"):"0");}catch(Exception ignored){}
+                      byte[] body=new byte[len]; int got=0;
+                      while(got<len){int n=in.read(body,got,len-got);if(n<0)break;got+=n;}
                       String upstreamUrl;
                       if(path.startsWith("/resource/")){
-                          String name = path.substring("/resource/".length());
-                          upstreamUrl = "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/" + name;
-                      } else {
-                          String upstreamPath = path;
-                          if(!(path.startsWith("/shop/") || path.startsWith("/legacy/") || path.startsWith("/legacy-api-full/"))){
-                              upstreamPath = "/legacy" + path;
-                          }
-                          upstreamUrl = UPSTREAM + upstreamPath;
+                          upstreamUrl="https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/"+path.substring(10);
+                      }else{
+                          String upstreamPath=path;
+                          if(!(path.startsWith("/shop/")||path.startsWith("/legacy/")||path.startsWith("/legacy-api-full/")))upstreamPath="/legacy"+path;
+                          upstreamUrl=UPSTREAM+upstreamPath;
                       }
-                      URL u=new URL(upstreamUrl);
-                      HttpURLConnection c=(HttpURLConnection)u.openConnection();
-                      c.setConnectTimeout(15000);
-                      c.setReadTimeout(30000);
-                      c.setRequestMethod(method);
-                      c.setInstanceFollowRedirects(true);
+                      HttpURLConnection c=(HttpURLConnection)new URL(upstreamUrl).openConnection();
+                      c.setConnectTimeout(15000); c.setReadTimeout(30000); c.setRequestMethod(method); c.setInstanceFollowRedirects(true);
                       for(Map.Entry<String,String> e:headers.entrySet()){
                           String k=e.getKey();
-                          if(k.equalsIgnoreCase("Host") || k.equalsIgnoreCase("Connection") ||
-                             k.equalsIgnoreCase("Content-Length")) continue;
-                          if(k.equalsIgnoreCase("Transfer-Encoding")) continue;
+                          if(k.equalsIgnoreCase("Host")||k.equalsIgnoreCase("Connection")||k.equalsIgnoreCase("Content-Length")||k.equalsIgnoreCase("Transfer-Encoding"))continue;
                           c.setRequestProperty(k,e.getValue());
                       }
-                      if(len>0 && !method.equalsIgnoreCase("GET") && !method.equalsIgnoreCase("HEAD")){
-                          c.setDoOutput(true);
-                          c.setFixedLengthStreamingMode(len);
-                          try(OutputStream co=c.getOutputStream()){co.write(body);}
+                      if(len>0&&!method.equalsIgnoreCase("GET")&&!method.equalsIgnoreCase("HEAD")){
+                          c.setDoOutput(true); c.setFixedLengthStreamingMode(len);
+                          OutputStream co=c.getOutputStream(); try{co.write(body);}finally{co.close();}
                       }
-
-                      int code=c.getResponseCode();
-                      String msg=c.getResponseMessage();
+                      int code=c.getResponseCode(); String msg=c.getResponseMessage();
                       out.write(("HTTP/1.1 "+code+" "+(msg==null?"OK":msg)+"\r\n").getBytes("ISO-8859-1"));
-
-                      String ct=c.getHeaderField("Content-Type");
-                      if(ct!=null) out.write(("Content-Type: "+ct+"\r\n").getBytes("ISO-8859-1"));
-                      String ce=c.getHeaderField("Content-Encoding");
-                      if(ce!=null) out.write(("Content-Encoding: "+ce+"\r\n").getBytes("ISO-8859-1"));
-                      String cl=c.getHeaderField("Content-Length");
-                      InputStream cin;
-                      try { cin=c.getInputStream(); } catch(IOException ex) { cin=c.getErrorStream(); }
-                      if(cl!=null) out.write(("Content-Length: "+cl+"\r\n").getBytes("ISO-8859-1"));
+                      String ct=c.getHeaderField("Content-Type"); if(ct!=null)out.write(("Content-Type: "+ct+"\r\n").getBytes("ISO-8859-1"));
+                      String ce=c.getHeaderField("Content-Encoding"); if(ce!=null)out.write(("Content-Encoding: "+ce+"\r\n").getBytes("ISO-8859-1"));
+                      String cl=c.getHeaderField("Content-Length"); if(cl!=null)out.write(("Content-Length: "+cl+"\r\n").getBytes("ISO-8859-1"));
+                      InputStream cin; try{cin=c.getInputStream();}catch(IOException ex){cin=c.getErrorStream();}
                       out.write("Connection: close\r\n\r\n".getBytes("ISO-8859-1"));
-                      if(cin!=null){
-                          byte[] buf=new byte[8192]; int n;
-                          while((n=cin.read(buf))!=-1) out.write(buf,0,n);
-                          cin.close();
-                      }
-                      out.flush();
-                      c.disconnect();
-                  } catch(Throwable ignored) {}
+                      if(cin!=null){byte[] buf=new byte[8192];int n;while((n=cin.read(buf))!=-1)out.write(buf,0,n);cin.close();}
+                      out.flush(); c.disconnect();
+                  }catch(Throwable ignored){}finally{try{s.close();}catch(Throwable ignored){}}
               }
-
-              private static String readLine(InputStream in) throws IOException {
-                  ByteArrayOutputStream b=new ByteArrayOutputStream();
-                  int cur;
+              private static String readLine(InputStream in)throws IOException{
+                  ByteArrayOutputStream b=new ByteArrayOutputStream(); int cur;
                   while((cur=in.read())!=-1){
-                      if(cur=='\r'){
-                          int next=in.read();
-                          if(next=='\n') break;
-                          if(next!=-1) b.write(next);
-                          break;
-                      }
-                      if(cur=='\n') break;
-                      b.write(cur);
+                      if(cur=='\r'){int next=in.read();if(next=='\n')break;if(next!=-1)b.write(next);break;}
+                      if(cur=='\n')break;b.write(cur);
                   }
-                  return b.size()==0 && cur==-1 ? null : new String(b.toByteArray(),"ISO-8859-1");
+                  return b.size()==0&&cur==-1?null:new String(b.toByteArray(),"ISO-8859-1");
               }
-              @Override public Cursor query(Uri uri,String[] p,String s,String[] a,String so){return null;}
-              @Override public String getType(Uri uri){return null;}
-              @Override public Uri insert(Uri uri,ContentValues v){return null;}
-              @Override public int delete(Uri uri,String s,String[] a){return 0;}
-              @Override public int update(Uri uri,ContentValues v,String s,String[] a){return 0;}
           }
           JAVA
-          # Compile against the Android SDK and merge the proxy into every original DEX.
-          javac -source 7 -target 7 -cp "$ANDROID_JAR" -d proxy-classes proxy-src/WorldLifeProxyProvider.java
+          javac -source 7 -target 7 -cp "$ANDROID_JAR" -d proxy-classes proxy-src/WorldLifeProxy.java
           jar cf proxy.jar -C proxy-classes .
-          rm -rf original-dex merged-dex && mkdir original-dex merged-dex
+          rm -rf original-dex merged-dex
+          mkdir -p original-dex merged-dex
           unzip -q master.apk "classes*.dex" -d original-dex
           "$D8" --min-api 16 --lib "$ANDROID_JAR" --output merged-dex original-dex/*.dex proxy.jar
           rm -f decoded/classes*.dex
           cp merged-dex/classes*.dex decoded/
-
-      - name: Register startup provider
-        run: |
-          set -e
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path("decoded/AndroidManifest.xml")
-          s=p.read_text(encoding="utf-8")
-          marker="</application>"
-          provider='<provider android:name="com.nubee.japanlife.WorldLifeProxyProvider" android:authorities="com.nubee.japanlife.worldlife.proxy" android:exported="false" android:initOrder="1000" />'
-          assert marker in s
-          assert provider not in s
-          s=s.replace(marker, provider+"\n"+marker, 1)
-          p.write_text(s,encoding="utf-8")
-          PY
-
-      - name: Verify manifest contains World Life native bridge provider
-        run: |
-          set -e
-          grep -q "WorldLifeProxyProvider" decoded/AndroidManifest.xml
-          echo "Native bridge provider registered"
 
       - name: Rebuild, align and sign
         run: |
