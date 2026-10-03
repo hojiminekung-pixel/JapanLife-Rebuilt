@@ -196,6 +196,61 @@ jobs:
           rm -f decoded/classes*.dex
           cp merged-dex/classes*.dex decoded/
 
+      - name: Hook bridge into Application startup
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, xml.etree.ElementTree as ET
+          manifest=Path("decoded/AndroidManifest.xml")
+          text=manifest.read_text(encoding="utf-8")
+          m=re.search(r'<application\\b[^>]*\\bandroid:name="([^"]+)"', text)
+          if not m:
+              m=re.search(r'<application\\b[^>]*\\bandroid:name=\\'([^\\']+)\\'', text)
+          if not m:
+              # no custom Application: patch the launcher Activity as a guaranteed startup point
+              m2=re.search(r'<activity\\b[^>]*\\bandroid:name="([^"]+)"', text)
+              assert m2, "No application/activity class found"
+              cls=m2.group(1)
+              target=root=Path("decoded")
+          else:
+              cls=m.group(1)
+          if cls.startswith('.'):
+              cls='com.nubee.japanlife'+cls
+          elif cls.startswith('com.'):
+              pass
+          else:
+              pkg=re.search(r'<manifest[^>]*\\bpackage="([^"]+)"', text)
+              assert pkg, "manifest package missing"
+              cls=pkg.group(1)+'.'+cls
+          rel=cls.replace('.','/')+'.smali'
+          candidates=list(Path("decoded").glob("smali*/"+rel))
+          assert candidates, f"smali class not found: {cls}"
+          p=candidates[0]
+          s=p.read_text(encoding="utf-8")
+          if 'WorldLifeProxy;->start()V' in s:
+              print("Application/launcher already hooked:",p); raise SystemExit
+          # Inject at the beginning of an existing onCreate, otherwise create one.
+          pat=re.compile(r'(?ms)(^\\.method[^\\n]* onCreate\\(\\)V\\n)(.*?)(^\\.end method\\n)')
+          mm=pat.search(s)
+          if mm:
+              body=mm.group(2)
+              ins='    invoke-static {}, Lcom/nubee/japanlife/WorldLifeProxy;->start()V\\n'
+              s=s[:mm.start(2)]+ins+body+s[mm.start(2)+len(body):]
+          else:
+              s += '\n.method public onCreate()V\\n    .locals 0\\n    invoke-static {}, Lcom/nubee/japanlife/WorldLifeProxy;->start()V\\n    invoke-super {p0}, Landroid/app/Application;->onCreate()V\\n    return-void\\n.end method\\n'
+          p.write_text(s,encoding="utf-8")
+          print("startup hook:",p)
+          PY
+
+      - name: Analyze legacy native networking map
+        run: |
+          set -euo pipefail
+          strings -a decoded/lib/armeabi/libKyotoLife.so | grep -Ei 'https?://|japanlife|nubee|cloudfront|loadbalancer|/resource|/shop|/legacy|save|patch|device|login|auth|facebook' | sort -u > native-network-strings.txt || true
+          find decoded/smali* -type f -name '*.smali' -print0 | xargs -0 grep -nE 'FacebookMgr|CActualServer|CGameServer|CPatchManager|CShopDataManager|CStubSaveData|Login|Auth|resource|shop|patch' > dex-network-map.txt || true
+          echo '--- native strings ---'; sed -n '1,240p' native-network-strings.txt
+          echo '--- dex map ---'; sed -n '1,260p' dex-network-map.txt
+
       - name: Hook bridge into existing Social SDK init without startup provider
         run: |
           set -euo pipefail
