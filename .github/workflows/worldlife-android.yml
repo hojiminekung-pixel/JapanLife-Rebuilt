@@ -229,3 +229,5 @@ jobs:
           name: World-Life-0.1-Server-Connected
           path: World-Life-0.1-Server-Connected.apk
           retention-days: 14
+
+# build guard: master-based APK pipeline
