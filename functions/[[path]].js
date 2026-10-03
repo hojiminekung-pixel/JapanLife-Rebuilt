@@ -19,3 +19,5 @@ export async function onRequest(context) {
     redirect: "follow",
   });
 }
+
+// World Life compatibility route active.
