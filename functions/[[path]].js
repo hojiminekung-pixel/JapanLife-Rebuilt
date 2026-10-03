@@ -21,3 +21,5 @@ export async function onRequest(context) {
 }
 
 // World Life compatibility route active.
+
+// Trigger Pages source deployment after routing configuration update.
