@@ -47,7 +47,7 @@ jobs:
       - name: Decode Master
         run: |
           set -euo pipefail
-          apktool d -f --no-src -o decoded master.apk
+          apktool d -f -o decoded master.apk
           test -f decoded/AndroidManifest.xml
           test -f decoded/lib/armeabi/libKyotoLife.so
 
