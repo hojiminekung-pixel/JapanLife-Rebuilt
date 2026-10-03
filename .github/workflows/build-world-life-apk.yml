@@ -49,7 +49,7 @@ jobs:
             head -c 200 /tmp/gateway-body || true
             echo
           done
-          curl -fsS "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/data_building.smf" -o storage-resource.smf
+          curl -fsS "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/data_building.smf" -o storage-resource.smf
           test -s storage-resource.smf
           echo "World-Life resource storage fetch passed: $(wc -c < storage-resource.smf) bytes"
 
@@ -102,6 +102,8 @@ jobs:
               b"https://japanlife.nubee.com": b"http://127.0.0.1:8765",
               b"https://japanlifemainte.nubee.com": b"http://127.0.0.1:8765",
               b"https://japanlifesave.nubee.com": b"http://127.0.0.1:8765",
+              b"https://d3p9l6k6r2a1z7.cloudfront.net/japanlife/v1_5_7": b"http://127.0.0.1:8765",
+              b"https://nbpf-loadbalancer-635642128.ap-northeast-1.elb.amazonaws.com/devices": b"http://127.0.0.1:8765",
           }
           for old,new in replacements.items():
               n=b.count(old)
@@ -115,7 +117,7 @@ jobs:
       - name: Verify native legacy endpoints are fully neutralized
         run: |
           set -euo pipefail
-          for h in 'japanlife.nubee.com' 'japanlifemainte.nubee.com' 'japanlifesave.nubee.com' 'jplife.nubee.com' 'st-jplife.nubee.com'; do
+          for h in 'japanlife.nubee.com' 'japanlifemainte.nubee.com' 'japanlifesave.nubee.com' 'd3p9l6k6r2a1z7.cloudfront.net/japanlife/v1_5_7' 'nbpf-loadbalancer-635642128.ap-northeast-1.elb.amazonaws.com/devices' 'jplife.nubee.com' 'st-jplife.nubee.com'; do
             if grep -aFq "$h" decoded/lib/armeabi/libKyotoLife.so; then
               echo "ERROR: legacy host still present after native patch: $h"
               exit 1
@@ -124,6 +126,18 @@ jobs:
           echo "Native legacy host scan passed"
           echo "World-Life bridge target: 127.0.0.1:8765"
       
+      - name: Enable Android cleartext for local World Life proxy
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("decoded/AndroidManifest.xml")
+          s=p.read_text()
+          if "android:usesCleartextTraffic=" not in s:
+              s=s.replace("<application ", '<application android:usesCleartextTraffic="true" ', 1)
+          p.write_text(s)
+          PY
+
       - name: Build World Life Email/Gmail login bridge
         shell: bash
         run: |
