@@ -51,7 +51,7 @@ jobs:
             head -c 200 /tmp/gateway-body || true
             echo
           done
-          curl -fsS "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/data_building.smf" -o storage-resource.smf
+          curl -fsS "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/data_building.smf" -o storage-resource.smf
           test -s storage-resource.smf
           echo "World-Life resource storage fetch passed: $(wc -c < storage-resource.smf) bytes"
 
@@ -221,7 +221,7 @@ jobs:
                       String upstreamUrl;
                       if(path.startsWith("/resource/")){
                           String name = path.substring("/resource/".length());
-                          upstreamUrl = "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/" + name;
+                          upstreamUrl = "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/" + name;
                       } else {
                           String upstreamPath = path;
                           if(!(path.startsWith("/shop/") || path.startsWith("/legacy/") || path.startsWith("/legacy-api-full/"))){
