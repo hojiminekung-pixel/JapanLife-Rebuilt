@@ -55,7 +55,7 @@ jobs:
           p=Path("decoded/AndroidManifest.xml")
           s=p.read_text(encoding="utf-8")
           if "android:usesCleartextTraffic=" not in s:
-              s=s.replace("<application ", "<application android:usesCleartextTraffic="true" ", 1)
+              s=s.replace("<application ", '<application android:usesCleartextTraffic="true" ', 1)
           p.write_text(s, encoding="utf-8")
           PY
 
@@ -70,6 +70,8 @@ jobs:
             b"https://japanlife.nubee.com":b"http://127.0.0.1:8765",
             b"https://japanlifemainte.nubee.com":b"http://127.0.0.1:8765",
             b"https://japanlifesave.nubee.com":b"http://127.0.0.1:8765",
+            b"https://d3p9l6k6r2a1z7.cloudfront.net/japanlife/v1_5_7":b"http://127.0.0.1:8765",
+            b"https://nbpf-loadbalancer-635642128.ap-northeast-1.elb.amazonaws.com/devices":b"http://127.0.0.1:8765",
           }
           total=0
           for old,new in replacements.items():
@@ -82,6 +84,8 @@ jobs:
           assert b"japanlife.nubee.com" not in b
           assert b"japanlifemainte.nubee.com" not in b
           assert b"japanlifesave.nubee.com" not in b
+          assert b"d3p9l6k6r2a1z7.cloudfront.net/japanlife/v1_5_7" not in b
+          assert b"nbpf-loadbalancer-635642128.ap-northeast-1.elb.amazonaws.com/devices" not in b
           print("native replacements:",total)
           PY
 
