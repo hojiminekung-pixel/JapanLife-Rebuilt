@@ -50,6 +50,14 @@ jobs:
           apktool d -f -o decoded master.apk
           test -f decoded/AndroidManifest.xml
           test -f decoded/lib/armeabi/libKyotoLife.so
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("decoded/AndroidManifest.xml")
+          s=p.read_text(encoding="utf-8")
+          if "android:usesCleartextTraffic=" not in s:
+              s=s.replace("<application ", "<application android:usesCleartextTraffic="true" ", 1)
+          p.write_text(s, encoding="utf-8")
+          PY
 
       - name: Patch native legacy endpoints
         run: |
@@ -135,7 +143,7 @@ jobs:
 
                 String url;
                 if(path.startsWith("/resource/")) {
-                  url="https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/"+path.substring(10);
+                  url="https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/"+path.substring(10);
                 } else {
                   String p=path;
                   if(!(p.startsWith("/legacy/")||p.startsWith("/shop/")||p.startsWith("/legacy-api-full/"))) p="/legacy"+p;
