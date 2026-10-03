@@ -3,17 +3,17 @@ on:
   push:
 jobs:
   export:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Get Canva source from temporary branch
+      - name: Get Canva source previews
         run: |
           git fetch origin tmp/canva20-source:refs/remotes/origin/tmp/canva20-source
-          git checkout origin/tmp/canva20-source -- tmp/canva20.png
+          git checkout origin/tmp/canva20-source -- tmp/canva20.webp
+          git checkout origin/tmp/canva20-source -- tmp/canva20.jpg || true
       - uses: actions/upload-artifact@v4
         with:
-          name: canva20-source
-          path: tmp/canva20.png
+          name: canva20-previews
+          path: tmp/canva20.*
