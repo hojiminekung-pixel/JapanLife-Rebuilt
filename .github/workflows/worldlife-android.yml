@@ -189,33 +189,25 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          files=list(Path("decoded").glob("smali*/**/*FacebookMgr*.smali"))
-          assert files, "FacebookMgr smali not found"
-          target=files[0]
-          s=target.read_text(encoding="utf-8")
-          if "WorldLifeProxy;->start()V" in s:
-              print("bridge hook already present")
-              raise SystemExit
+          import re
+          root=Path("decoded")
+          found=None
+          for p in root.glob("smali*/**/*.smali"):
+              try: s=p.read_text(encoding="utf-8")
+              except Exception: continue
+              if "Lcom/nubee/FBConnect/FacebookMgr;->Initialise" in s:
+                  found=(p,s); break
+          assert found, "FacebookMgr Initialise call not found in decoded smali"
+          p,s=found
+          needle="Lcom/nubee/FBConnect/FacebookMgr;->Initialise"
           lines=s.splitlines()
-          idx=None
           for i,line in enumerate(lines):
-              if ".method" in line and "Initialise" in line:
-                  idx=i
+              if needle in line:
+                  indent=line[:len(line)-len(line.lstrip())]
+                  lines.insert(i, indent+"invoke-static {}, Lcom/nubee/japanlife/WorldLifeProxy;->start()V")
                   break
-          assert idx is not None, "FacebookMgr Initialise method not found"
-          end=None
-          for i in range(idx+1,len(lines)):
-              if lines[i].strip()==".end method":
-                  end=i; break
-          assert end is not None
-          body="\n".join(lines[idx:end])
-          assert "return-void" in body or "return" in body
-          insert=idx+1
-          while insert<end and (lines[insert].strip().startswith(".") or lines[insert].strip()==""):
-              insert+=1
-          lines.insert(insert,"    invoke-static {}, Lcom/nubee/japanlife/WorldLifeProxy;->start()V")
-          target.write_text("\n".join(lines)+"\n",encoding="utf-8")
-          print("patched:",target)
+          p.write_text("\n".join(lines)+"\n",encoding="utf-8")
+          print("patched caller:",p)
           PY
 
       - name: Rebuild and sign
