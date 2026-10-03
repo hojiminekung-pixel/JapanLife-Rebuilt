@@ -44,7 +44,7 @@ jobs:
         run: |
           set -e
           GATEWAY="https://worldlife-gateway.bomsronthai.workers.dev"
-          for route in "/legacy/test" "/resource/data_building.smf" "/legacy-api-full/test" "/legacy-api-full/resource/data_building.smf"; do
+          for route in "/health" "/legacy/test" "/legacy/json/util/version_check?game_version=0.1" "/legacy/json/get/get_game_data_url?game_version=0.1" "/resource/data_building.smf" "/japanlife/v1_5_7/data_building.smf" "/devices?udid=build-test"; do
             code="$(curl -sS -o /tmp/gateway-body -w '%{http_code}' "$GATEWAY$route" || true)"
             size="$(wc -c < /tmp/gateway-body 2>/dev/null || echo 0)"
             echo "Gateway $route -> HTTP $code, $size bytes"
@@ -221,7 +221,15 @@ jobs:
                       String upstreamUrl;
                       if(path.startsWith("/resource/")){
                           String name = path.substring("/resource/".length());
-                          upstreamUrl = "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/" + name;
+                          upstreamUrl = UPSTREAM + "/resource/" + name;
+                      } else if(path.startsWith("/japanlife/v1_5_7/")){
+                          String name = path.substring("/japanlife/v1_5_7/".length());
+                          upstreamUrl = UPSTREAM + "/resource/" + name;
+                      } else if(path.equals("/devices")){
+                          upstreamUrl = UPSTREAM + "/devices";
+                      } else if(path.toLowerCase().endsWith(".smf")){
+                          String name = path.substring(path.lastIndexOf('/') + 1);
+                          upstreamUrl = UPSTREAM + "/resource/" + name;
                       } else {
                           String upstreamPath = path;
                           if(!(path.startsWith("/shop/") || path.startsWith("/legacy/") || path.startsWith("/legacy-api-full/"))){
