@@ -162,6 +162,7 @@ jobs:
               private static final int PORT = 8765;
               private static final String UPSTREAM = "https://worldlife-gateway.bomsronthai.workers.dev";
               private static volatile boolean started;
+              private static volatile boolean ready;
 
               @Override public boolean onCreate() {
                   if (!started) {
@@ -169,14 +170,21 @@ jobs:
                       Thread t = new Thread(new Runnable() { public void run() { serve(); } }, "WorldLifeProxy");
                       t.setDaemon(true);
                       t.start();
+                      long deadline = System.currentTimeMillis() + 3000;
+                      while (!isReady() && System.currentTimeMillis() < deadline) {
+                          try { Thread.sleep(25); } catch (InterruptedException ignored) { break; }
+                      }
                   }
                   return true;
               }
+
+              private static boolean isReady() { return ready; }
 
               private static void serve() {
                   try (ServerSocket ss = new ServerSocket()) {
                       ss.setReuseAddress(true);
                       ss.bind(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT));
+                      ready = true;
                       while (true) {
                           final Socket client = ss.accept();
                           Thread worker = new Thread(new Runnable() {
@@ -232,9 +240,8 @@ jobs:
                           upstreamUrl = UPSTREAM + "/resource/" + name;
                       } else {
                           String upstreamPath = path;
-                          if(!(path.startsWith("/shop/") || path.startsWith("/legacy/") || path.startsWith("/legacy-api-full/"))){
-                              upstreamPath = "/legacy" + path;
-                          }
+                          if (path.startsWith("/legacy-api-full/")) upstreamPath = path.substring("/legacy-api-full".length());
+                          else if (path.startsWith("/legacy/")) upstreamPath = path.substring("/legacy".length());
                           upstreamUrl = UPSTREAM + upstreamPath;
                       }
                       URL u=new URL(upstreamUrl);
