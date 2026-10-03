@@ -1,47 +1,239 @@
 name: World Life Android APK
+
 on:
+  workflow_dispatch:
   push:
     paths:
-      - 'android-worldlife/**'
-  workflow_dispatch:
+      - '.github/workflows/worldlife-android.yml'
+
 permissions:
   contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: worldlife-newgame
-          fetch-depth: 0
-      - name: Verify project files
+      - name: Download Master APK
         run: |
-          test -f android-worldlife/settings.gradle
-          test -f android-worldlife/build.gradle
-          test -f android-worldlife/app/build.gradle
+          set -euo pipefail
+          curl -fL --retry 5 --retry-delay 2             "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/world%20life.zip"             -o master-outer.zip
+          mkdir -p outer inner
+          unzip -q master-outer.zip -d outer
+          inner_zip="$(find outer -type f -iname '*.zip' | head -n 1)"
+          test -n "$inner_zip"
+          unzip -q "$inner_zip" -d inner
+          apk="$(find inner -type f -name '*.apk' | head -n 1)"
+          test -n "$apk"
+          cp "$apk" master.apk
+          test "$(stat -c%s master.apk)" -gt 40000000
+          unzip -t master.apk >/dev/null
+          echo "MASTER_BYTES=$(stat -c%s master.apk)"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.10.2'
-      - name: Build release APK
-        working-directory: android-worldlife
-        run: gradle --no-daemon :app:assembleRelease
-      - name: Sign and align APK
-        shell: bash
+
+      - name: Install APK build tools
         run: |
-          set -e
-          SDK_TOOLS="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)"
-          KEYSTORE="$RUNNER_TEMP/worldlife-debug.keystore"
-          keytool -genkeypair -v -keystore "$KEYSTORE" -storepass android -keypass android             -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000             -dname "CN=World Life,O=Dukku,C=TH"
-          "$SDK_TOOLS/zipalign" -f 4             android-worldlife/app/build/outputs/apk/release/app-release-unsigned.apk             "$RUNNER_TEMP/worldlife-aligned.apk"
-          "$SDK_TOOLS/apksigner" sign --ks "$KEYSTORE" --ks-pass pass:android             --ks-key-alias androiddebugkey --key-pass pass:android             --out android-worldlife/app/build/outputs/apk/release/World-Life-0.1.apk             "$RUNNER_TEMP/worldlife-aligned.apk"
-          "$SDK_TOOLS/apksigner" verify --verbose android-worldlife/app/build/outputs/apk/release/World-Life-0.1.apk
-      - name: Upload APK
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y apktool
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -n 1)"
+          echo "BUILD_TOOLS=$BUILD_TOOLS" >> "$GITHUB_ENV"
+          echo "D8=$BUILD_TOOLS/d8" >> "$GITHUB_ENV"
+          echo "ANDROID_JAR=$(find "$ANDROID_HOME/platforms" -name android.jar | sort -V | tail -n 1)" >> "$GITHUB_ENV"
+
+      - name: Decode Master
+        run: |
+          set -euo pipefail
+          apktool d -f --no-src -o decoded master.apk
+          test -f decoded/AndroidManifest.xml
+          test -f decoded/lib/armeabi/libKyotoLife.so
+
+      - name: Patch native legacy endpoints
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("decoded/lib/armeabi/libKyotoLife.so")
+          b=bytearray(p.read_bytes())
+          replacements={
+            b"https://japanlife.nubee.com":b"http://127.0.0.1:8765",
+            b"https://japanlifemainte.nubee.com":b"http://127.0.0.1:8765",
+            b"https://japanlifesave.nubee.com":b"http://127.0.0.1:8765",
+          }
+          total=0
+          for old,new in replacements.items():
+            n=b.count(old)
+            assert n>0, old
+            b=b.replace(old,new+b"\0"*(len(old)-len(new)))
+            total+=n
+            print(old.decode(),n)
+          p.write_bytes(b)
+          assert b"japanlife.nubee.com" not in b
+          assert b"japanlifemainte.nubee.com" not in b
+          assert b"japanlifesave.nubee.com" not in b
+          print("native replacements:",total)
+          PY
+
+      - name: Build lazy World Life gateway bridge
+        run: |
+          set -euo pipefail
+          mkdir -p proxy-src proxy-classes merged-dex original-dex
+          cat > proxy-src/WorldLifeProxy.java <<'JAVA'
+          package com.nubee.japanlife;
+          import java.io.*;
+          import java.net.*;
+          import java.util.*;
+
+          public final class WorldLifeProxy {
+            private static final int PORT=8765;
+            private static final String GATEWAY="https://worldlife-gateway.bomsronthai.workers.dev";
+            private static volatile boolean started=false;
+
+            public static synchronized void start() {
+              if(started) return;
+              started=true;
+              Thread t=new Thread(new Runnable(){public void run(){serve();}}, "WorldLifeProxy");
+              t.setDaemon(true);
+              t.start();
+            }
+
+            private static void serve() {
+              try {
+                ServerSocket ss=new ServerSocket();
+                ss.setReuseAddress(true);
+                ss.bind(new InetSocketAddress(InetAddress.getByName("127.0.0.1"),PORT));
+                while(true) {
+                  final Socket s=ss.accept();
+                  Thread t=new Thread(new Runnable(){public void run(){handle(s);}}, "WorldLifeProxyClient");
+                  t.setDaemon(true); t.start();
+                }
+              } catch(Throwable ignored) {}
+            }
+
+            private static void handle(Socket s) {
+              try {
+                s.setSoTimeout(30000);
+                BufferedInputStream in=new BufferedInputStream(s.getInputStream());
+                OutputStream out=s.getOutputStream();
+                String line=readLine(in);
+                if(line==null) return;
+                String[] rp=line.split(" ");
+                if(rp.length<2) return;
+                String method=rp[0], path=rp[1];
+                Map<String,String> h=new LinkedHashMap<String,String>();
+                while((line=readLine(in))!=null && line.length()>0) {
+                  int k=line.indexOf(':');
+                  if(k>0) h.put(line.substring(0,k).trim(),line.substring(k+1).trim());
+                }
+                int len=0;
+                try { len=Integer.parseInt(h.containsKey("Content-Length")?h.get("Content-Length"):"0"); } catch(Exception ignored){}
+                byte[] body=new byte[len]; int got=0;
+                while(got<len){int n=in.read(body,got,len-got);if(n<0)break;got+=n;}
+
+                String url;
+                if(path.startsWith("/resource/")) {
+                  url="https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/"+path.substring(10);
+                } else {
+                  String p=path;
+                  if(!(p.startsWith("/legacy/")||p.startsWith("/shop/")||p.startsWith("/legacy-api-full/"))) p="/legacy"+p;
+                  url=GATEWAY+p;
+                }
+
+                HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();
+                c.setConnectTimeout(15000); c.setReadTimeout(30000);
+                c.setRequestMethod(method); c.setInstanceFollowRedirects(true);
+                for(Map.Entry<String,String> e:h.entrySet()){
+                  String k=e.getKey();
+                  if(k.equalsIgnoreCase("Host")||k.equalsIgnoreCase("Connection")||k.equalsIgnoreCase("Content-Length")||k.equalsIgnoreCase("Transfer-Encoding")) continue;
+                  c.setRequestProperty(k,e.getValue());
+                }
+                if(len>0 && !method.equalsIgnoreCase("GET") && !method.equalsIgnoreCase("HEAD")){
+                  c.setDoOutput(true); c.setFixedLengthStreamingMode(len);
+                  OutputStream co=c.getOutputStream(); co.write(body); co.close();
+                }
+                int code=c.getResponseCode();
+                String msg=c.getResponseMessage();
+                out.write(("HTTP/1.1 "+code+" "+(msg==null?"OK":msg)+"\r\n").getBytes("ISO-8859-1"));
+                String[] hs={"Content-Type","Content-Encoding","Content-Length"};
+                for(String k:hs){String v=c.getHeaderField(k);if(v!=null)out.write((k+": "+v+"\r\n").getBytes("ISO-8859-1"));}
+                out.write("Connection: close\r\n\r\n".getBytes("ISO-8859-1"));
+                InputStream ci; try{ci=c.getInputStream();}catch(IOException e){ci=c.getErrorStream();}
+                if(ci!=null){byte[] b=new byte[8192];int n;while((n=ci.read(b))!=-1)out.write(b,0,n);ci.close();}
+                out.flush(); c.disconnect();
+              } catch(Throwable ignored) {
+              } finally { try{s.close();}catch(Throwable ignored){} }
+            }
+
+            private static String readLine(InputStream in)throws IOException{
+              ByteArrayOutputStream b=new ByteArrayOutputStream(); int c;
+              while((c=in.read())!=-1){
+                if(c=='\r'){int n=in.read();if(n=='\n')break;if(n!=-1)b.write(n);break;}
+                if(c=='\n')break; b.write(c);
+              }
+              return b.size()==0&&c==-1?null:new String(b.toByteArray(),"ISO-8859-1");
+            }
+          }
+          JAVA
+          javac -source 7 -target 7 -cp "$ANDROID_JAR" -d proxy-classes proxy-src/WorldLifeProxy.java
+          jar cf proxy.jar -C proxy-classes .
+          unzip -q master.apk "classes*.dex" -d original-dex
+          "$D8" --min-api 16 --lib "$ANDROID_JAR" --output merged-dex original-dex/*.dex proxy.jar
+          rm -f decoded/classes*.dex
+          cp merged-dex/classes*.dex decoded/
+
+      - name: Hook bridge into existing Social SDK init without startup provider
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          files=list(Path("decoded").glob("smali*/**/*FacebookMgr*.smali"))
+          assert files, "FacebookMgr smali not found"
+          target=files[0]
+          s=target.read_text(encoding="utf-8")
+          if "WorldLifeProxy;->start()V" in s:
+              print("bridge hook already present")
+              raise SystemExit
+          lines=s.splitlines()
+          idx=None
+          for i,line in enumerate(lines):
+              if ".method" in line and "Initialise" in line:
+                  idx=i
+                  break
+          assert idx is not None, "FacebookMgr Initialise method not found"
+          end=None
+          for i in range(idx+1,len(lines)):
+              if lines[i].strip()==".end method":
+                  end=i; break
+          assert end is not None
+          body="\n".join(lines[idx:end])
+          assert "return-void" in body or "return" in body
+          insert=idx+1
+          while insert<end and (lines[insert].strip().startswith(".") or lines[insert].strip()==""):
+              insert+=1
+          lines.insert(insert,"    invoke-static {}, Lcom/nubee/japanlife/WorldLifeProxy;->start()V")
+          target.write_text("\n".join(lines)+"\n",encoding="utf-8")
+          print("patched:",target)
+          PY
+
+      - name: Rebuild and sign
+        run: |
+          set -euo pipefail
+          apktool b decoded -o world-life-master-unsigned.apk
+          "$BUILD_TOOLS/zipalign" -f -p 4 world-life-master-unsigned.apk world-life-master-aligned.apk
+          keytool -genkeypair -v -keystore worldlife.keystore -storepass android -keypass android             -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000             -dname "CN=World Life,O=Dukku,C=TH"
+          "$BUILD_TOOLS/apksigner" sign --ks worldlife.keystore --ks-pass pass:android --key-pass pass:android             --out World-Life-0.1-Server-Connected.apk world-life-master-aligned.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose World-Life-0.1-Server-Connected.apk
+          test "$(stat -c%s World-Life-0.1-Server-Connected.apk)" -gt 40000000
+          unzip -t World-Life-0.1-Server-Connected.apk >/dev/null
+          unzip -l World-Life-0.1-Server-Connected.apk | grep -q 'lib/armeabi/libKyotoLife.so'
+          ls -lh World-Life-0.1-Server-Connected.apk
+
+      - name: Upload playable Master-based APK
         uses: actions/upload-artifact@v4
         with:
-          name: World-Life-0.1-APK
-          path: android-worldlife/app/build/outputs/apk/release/World-Life-0.1.apk
-          if-no-files-found: error
+          name: World-Life-0.1-Server-Connected
+          path: World-Life-0.1-Server-Connected.apk
+          retention-days: 14
