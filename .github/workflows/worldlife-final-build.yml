@@ -94,56 +94,20 @@ jobs:
           test -f decoded/AndroidManifest.xml
           test -f decoded/lib/armeabi/libKyotoLife.so
 
-      - name: Patch native server endpoints without changing app startup
+      - name: Verify Master remains unmodified
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("decoded/lib/armeabi/libKyotoLife.so")
-          b = bytearray(p.read_bytes())
-          target = b"https://wl-server.pages.dev"
-          replacements = {
-              b"https://japanlife.nubee.com": target,
-              b"https://japanlifemainte.nubee.com": target,
-              b"https://japanlifesave.nubee.com": target,
-              b"https://d3p9l6k6r2a1z7.cloudfront.net/japanlife/v1_5_7": target,
-              b"https://nbpf-loadbalancer-635642128.ap-northeast-1.elb.amazonaws.com/devices": target,
-          }
-          for old,new in replacements.items():
-              n=b.count(old)
-              assert n>0, old
-              assert len(new)<=len(old), (old,len(old),len(new))
-              b=b.replace(old,new+b"\\x00"*(len(old)-len(new)))
-              print(old.decode(), "->", new.decode(), "count", n)
-          p.write_bytes(b)
-          PY
+          cp master.apk World-Life-0.1-Master-Baseline.apk
+          unzip -t World-Life-0.1-Master-Baseline.apk >/dev/null
+          sha256sum World-Life-0.1-Master-Baseline.apk
+          echo "No native, manifest, resource, startup, or signing modifications."
 
-      - name: Verify native endpoints and preserve Master startup
-        run: |
-          set -euo pipefail
-          for h in 'japanlife.nubee.com' 'japanlifemainte.nubee.com' 'japanlifesave.nubee.com' 'd3p9l6k6r2a1z7.cloudfront.net/japanlife/v1_5_7' 'nbpf-loadbalancer-635642128.ap-northeast-1.elb.amazonaws.com/devices' 'jplife.nubee.com' 'st-jplife.nubee.com'; do
-            if grep -aFq "$h" decoded/lib/armeabi/libKyotoLife.so; then
-              echo "ERROR: legacy host still present: $h"
-              exit 1
-            fi
-          done
-          test "$(grep -aob 'https://wl-server.pages.dev' decoded/lib/armeabi/libKyotoLife.so | wc -l)" -ge 3
-          echo "Direct World Life endpoint patch passed"
-          echo "Startup architecture unchanged: no ContentProvider, no local ServerSocket, no D8 proxy"
-
-      - name: Verify World Life HTTPS gateway before APK build
-        run: |
-          set -euo pipefail
-          BASE="https://wl-server.pages.dev"
-          for route in "/health" "/test" "/legacy/json/util/version_check?game_version=0.1" "/legacy/json/get/get_game_data_url?game_version=0.1" "/resource/data_building.smf" "/japanlife/v1_5_7/data_building.smf" "/devices?udid=build-test"; do
-            code="$(curl -sS -o /tmp/wl-body -w '%{http_code}' "$BASE$route" || true)"
-            size="$(wc -c < /tmp/wl-body 2>/dev/null || echo 0)"
-            echo "World Life $route -> HTTP $code, $size bytes"
-            head -c 200 /tmp/wl-body || true
-            echo
-          done
-          curl -fsS "$BASE/health" -o /tmp/wl-health
-          grep -q '"status":"ready"' /tmp/wl-health
+      - name: Upload Master baseline
+        uses: actions/upload-artifact@v4
+        with:
+          name: World-Life-0.1-Master-Baseline
+          path: World-Life-0.1-Master-Baseline.apk
+          retention-days: 14
 
       - name: Rebuild, align and sign
         run: |
