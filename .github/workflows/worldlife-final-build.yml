@@ -1,0 +1,346 @@
+name: World Life Final Build
+
+on:
+  push:
+    paths:
+      - .github/workflows/worldlife-final-build.yml
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download stored Master
+        run: |
+          set -e
+          curl -fL --retry 3 --retry-delay 2 \
+            "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/world%20life.zip" \
+            -o master-outer.zip
+          mkdir outer inner
+          unzip -q master-outer.zip -d outer
+          inner_zip="$(find outer -type f -iname '*.zip' | head -n 1)"
+          test -n "$inner_zip"
+          unzip -q "$inner_zip" -d inner
+          apk="$(find inner -type f -name '*.apk' | head -n 1)"
+          test -n "$apk"
+          cp "$apk" master.apk
+          ls -lh master.apk
+
+      - name: Save unmodified Master APK
+        run: |
+          set -e
+          cp master.apk World-Life-Master-Original.apk
+          sha256sum World-Life-Master-Original.apk
+          unzip -t World-Life-Master-Original.apk >/dev/null
+
+      - name: Upload unmodified Master APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: World-Life-Master-Original
+          path: World-Life-Master-Original.apk
+          retention-days: 14
+
+      - name: Verify World-Life-Gateway
+        run: |
+          set -e
+          GATEWAY="https://worldlife-gateway.bomsronthai.workers.dev"
+          for route in "/legacy/test" "/resource/data_building.smf" "/legacy-api-full/test" "/legacy-api-full/resource/data_building.smf"; do
+            code="$(curl -sS -o /tmp/gateway-body -w '%{http_code}' "$GATEWAY$route" || true)"
+            size="$(wc -c < /tmp/gateway-body 2>/dev/null || echo 0)"
+            echo "Gateway $route -> HTTP $code, $size bytes"
+            head -c 200 /tmp/gateway-body || true
+            echo
+          done
+          curl -fsS "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/data_building.smf" -o storage-resource.smf
+          test -s storage-resource.smf
+          echo "World-Life resource storage fetch passed: $(wc -c < storage-resource.smf) bytes"
+
+      - name: Install APK build tools
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y apktool
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -n 1)"
+          echo "BUILD_TOOLS=$BUILD_TOOLS" >> "$GITHUB_ENV"
+          test -x "$BUILD_TOOLS/apksigner"
+          test -x "$BUILD_TOOLS/zipalign"
+          D8="$BUILD_TOOLS/d8"
+          test -x "$D8"
+          echo "D8=$D8" >> "$GITHUB_ENV"
+          echo "ANDROID_JAR=$(find "$ANDROID_HOME/platforms" -name android.jar | sort -V | tail -n 1)" >> "$GITHUB_ENV"
+
+      - name: Audit Master launcher and social components
+        run: |
+          set -e
+          mkdir -p preaudit
+          apktool d -f --no-src -o preaudit/decoded master.apk >/dev/null
+          grep -E '<activity|<service|<receiver|<provider' preaudit/decoded/AndroidManifest.xml | head -300 > preaudit/manifest-components.txt || true
+          strings -a master.apk | grep -Ei 'facebook|renren|weibo|tencent|twitter|login|oauth|jplife|japanlife|nubee' | sort -u | head -500 > preaudit/social-strings.txt || true
+          cat preaudit/manifest-components.txt
+          echo '--- social strings ---'
+          cat preaudit/social-strings.txt
+      - name: Upload Master pre-audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: World-Life-Master-PreAudit
+          path: preaudit
+          retention-days: 14
+
+      - name: Decode original Master
+        run: |
+          set -e
+          apktool d -f --no-src -o decoded master.apk
+          test -f decoded/AndroidManifest.xml
+          test -f decoded/lib/armeabi/libKyotoLife.so
+
+      - name: Patch native server endpoints
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("decoded/lib/armeabi/libKyotoLife.so")
+          b = bytearray(p.read_bytes())
+          replacements = {
+              b"https://japanlife.nubee.com": b"http://127.0.0.1:8765",
+              b"https://japanlifemainte.nubee.com": b"http://127.0.0.1:8765",
+              b"https://japanlifesave.nubee.com": b"http://127.0.0.1:8765",
+              b"https://d3p9l6k6r2a1z7.cloudfront.net/japanlife/v1_5_7": b"http://127.0.0.1:8765",
+              b"https://nbpf-loadbalancer-635642128.ap-northeast-1.elb.amazonaws.com/devices": b"http://127.0.0.1:8765",
+          }
+          for old,new in replacements.items():
+              n=b.count(old)
+              assert n>0, old
+              assert len(new)<=len(old)
+              b=b.replace(old,new + b"\\x00"*(len(old)-len(new)))
+              print(old.decode(), "replaced", n)
+          p.write_bytes(b)
+          PY
+
+      - name: Verify native legacy endpoints are fully neutralized
+        run: |
+          set -euo pipefail
+          for h in 'japanlife.nubee.com' 'japanlifemainte.nubee.com' 'japanlifesave.nubee.com' 'd3p9l6k6r2a1z7.cloudfront.net/japanlife/v1_5_7' 'nbpf-loadbalancer-635642128.ap-northeast-1.elb.amazonaws.com/devices' 'jplife.nubee.com' 'st-jplife.nubee.com'; do
+            if grep -aFq "$h" decoded/lib/armeabi/libKyotoLife.so; then
+              echo "ERROR: legacy host still present after native patch: $h"
+              exit 1
+            fi
+          done
+          echo "Native legacy host scan passed"
+          echo "World-Life bridge target: 127.0.0.1:8765"
+      
+      - name: Enable Android cleartext for local World Life proxy
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("decoded/AndroidManifest.xml")
+          s=p.read_text()
+          if "android:usesCleartextTraffic=" not in s:
+              s=s.replace("<application ", '<application android:usesCleartextTraffic="true" ', 1)
+          p.write_text(s)
+          PY
+
+      - name: Build embedded local gateway proxy
+        run: |
+          set -e
+          mkdir -p proxy-src proxy-classes proxy-dex
+          cat > proxy-src/WorldLifeProxyProvider.java <<'JAVA'
+          package com.nubee.japanlife;
+
+          import android.content.ContentProvider;
+          import android.content.ContentValues;
+          import android.database.Cursor;
+          import android.net.Uri;
+          import android.os.ParcelFileDescriptor;
+
+          import java.io.*;
+          import java.net.*;
+          import java.util.*;
+          
+
+          public final class WorldLifeProxyProvider extends ContentProvider {
+              private static final int PORT = 8765;
+              private static final String UPSTREAM = "https://worldlife-gateway.bomsronthai.workers.dev";
+              private static volatile boolean started;
+
+              @Override public boolean onCreate() {
+                  if (!started) {
+                      started = true;
+                      Thread t = new Thread(new Runnable() { public void run() { serve(); } }, "WorldLifeProxy");
+                      t.setDaemon(true);
+                      t.start();
+                  }
+                  return true;
+              }
+
+              private static void serve() {
+                  try (ServerSocket ss = new ServerSocket()) {
+                      ss.setReuseAddress(true);
+                      ss.bind(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT));
+                      while (true) {
+                          final Socket client = ss.accept();
+                          Thread worker = new Thread(new Runnable() {
+                              @Override public void run() { handle(client); }
+                          }, "WorldLifeProxyClient");
+                          worker.setDaemon(true);
+                          worker.start();
+                      }
+                  } catch (Throwable ignored) {}
+              }
+
+              private static void handle(Socket s) {
+                  try (Socket sock=s) {
+                      sock.setSoTimeout(30000);
+                      BufferedInputStream in=new BufferedInputStream(sock.getInputStream());
+                      OutputStream out=sock.getOutputStream();
+
+                      String requestLine=readLine(in);
+                      if(requestLine==null || requestLine.length()==0) return;
+                      String[] rp=requestLine.split(" ");
+                      if(rp.length<2) return;
+                      String method=rp[0];
+                      String path=rp[1];
+
+                      Map<String,String> headers=new LinkedHashMap<>();
+                      String line;
+                      while((line=readLine(in))!=null && !line.isEmpty()){
+                          int c=line.indexOf(':');
+                          if(c>0) headers.put(line.substring(0,c).trim(),line.substring(c+1).trim());
+                      }
+
+                      int len=0;
+                      try { len=Integer.parseInt(headers.getOrDefault("Content-Length","0")); } catch(Exception ignored){}
+                      byte[] body=new byte[len];
+                      int got=0;
+                      while(got<len){
+                          int n=in.read(body,got,len-got);
+                          if(n<0) break;
+                          got+=n;
+                      }
+
+                      String upstreamUrl;
+                      if(path.startsWith("/resource/")){
+                          String name = path.substring("/resource/".length());
+                          upstreamUrl = "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/" + name;
+                      } else {
+                          String upstreamPath = path;
+                          if(!(path.startsWith("/shop/") || path.startsWith("/legacy/") || path.startsWith("/legacy-api-full/"))){
+                              upstreamPath = "/legacy" + path;
+                          }
+                          upstreamUrl = UPSTREAM + upstreamPath;
+                      }
+                      URL u=new URL(upstreamUrl);
+                      HttpURLConnection c=(HttpURLConnection)u.openConnection();
+                      c.setConnectTimeout(15000);
+                      c.setReadTimeout(30000);
+                      c.setRequestMethod(method);
+                      c.setInstanceFollowRedirects(true);
+                      for(Map.Entry<String,String> e:headers.entrySet()){
+                          String k=e.getKey();
+                          if(k.equalsIgnoreCase("Host") || k.equalsIgnoreCase("Connection") ||
+                             k.equalsIgnoreCase("Content-Length")) continue;
+                          if(k.equalsIgnoreCase("Transfer-Encoding")) continue;
+                          c.setRequestProperty(k,e.getValue());
+                      }
+                      if(len>0 && !method.equalsIgnoreCase("GET") && !method.equalsIgnoreCase("HEAD")){
+                          c.setDoOutput(true);
+                          c.setFixedLengthStreamingMode(len);
+                          try(OutputStream co=c.getOutputStream()){co.write(body);}
+                      }
+
+                      int code=c.getResponseCode();
+                      String msg=c.getResponseMessage();
+                      out.write(("HTTP/1.1 "+code+" "+(msg==null?"OK":msg)+"\r\n").getBytes("ISO-8859-1"));
+
+                      String ct=c.getHeaderField("Content-Type");
+                      if(ct!=null) out.write(("Content-Type: "+ct+"\r\n").getBytes("ISO-8859-1"));
+                      String ce=c.getHeaderField("Content-Encoding");
+                      if(ce!=null) out.write(("Content-Encoding: "+ce+"\r\n").getBytes("ISO-8859-1"));
+                      String cl=c.getHeaderField("Content-Length");
+                      InputStream cin;
+                      try { cin=c.getInputStream(); } catch(IOException ex) { cin=c.getErrorStream(); }
+                      if(cl!=null) out.write(("Content-Length: "+cl+"\r\n").getBytes("ISO-8859-1"));
+                      out.write("Connection: close\r\n\r\n".getBytes("ISO-8859-1"));
+                      if(cin!=null){
+                          byte[] buf=new byte[8192]; int n;
+                          while((n=cin.read(buf))!=-1) out.write(buf,0,n);
+                          cin.close();
+                      }
+                      out.flush();
+                      c.disconnect();
+                  } catch(Throwable ignored) {}
+              }
+
+              private static String readLine(InputStream in) throws IOException {
+                  ByteArrayOutputStream b=new ByteArrayOutputStream();
+                  int cur;
+                  while((cur=in.read())!=-1){
+                      if(cur=='\r'){
+                          int next=in.read();
+                          if(next=='\n') break;
+                          if(next!=-1) b.write(next);
+                          break;
+                      }
+                      if(cur=='\n') break;
+                      b.write(cur);
+                  }
+                  return b.size()==0 && cur==-1 ? null : new String(b.toByteArray(),"ISO-8859-1");
+              }
+              @Override public Cursor query(Uri uri,String[] p,String s,String[] a,String so){return null;}
+              @Override public String getType(Uri uri){return null;}
+              @Override public Uri insert(Uri uri,ContentValues v){return null;}
+              @Override public int delete(Uri uri,String s,String[] a){return 0;}
+              @Override public int update(Uri uri,ContentValues v,String s,String[] a){return 0;}
+          }
+          JAVA
+          # Compile against the Android SDK and merge the proxy into every original DEX.
+          javac -source 7 -target 7 -cp "$ANDROID_JAR" -d proxy-classes proxy-src/WorldLifeProxyProvider.java
+          jar cf proxy.jar -C proxy-classes .
+          rm -rf original-dex merged-dex && mkdir original-dex merged-dex
+          unzip -q master.apk "classes*.dex" -d original-dex
+          "$D8" --min-api 16 --lib "$ANDROID_JAR" --output merged-dex original-dex/*.dex proxy.jar
+          rm -f decoded/classes*.dex
+          cp merged-dex/classes*.dex decoded/
+
+      - name: Register startup provider
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("decoded/AndroidManifest.xml")
+          s=p.read_text(encoding="utf-8")
+          marker="</application>"
+          provider='<provider android:name="com.nubee.japanlife.WorldLifeProxyProvider" android:authorities="com.nubee.japanlife.worldlife.proxy" android:exported="false" android:initOrder="1000" />'
+          assert marker in s
+          assert provider not in s
+          s=s.replace(marker, provider+"\n"+marker, 1)
+          p.write_text(s,encoding="utf-8")
+          PY
+
+      - name: Verify manifest contains World Life native bridge provider
+        run: |
+          set -e
+          grep -q "WorldLifeProxyProvider" decoded/AndroidManifest.xml
+          echo "Native bridge provider registered"
+
+      - name: Rebuild, align and sign
+        run: |
+          set -e
+          apktool b decoded -o world-life-master-unsigned.apk
+          "$BUILD_TOOLS/zipalign" -f -p 4 world-life-master-unsigned.apk world-life-master-aligned.apk
+          keytool -genkeypair -v -keystore world-life-debug.keystore \
+            -storepass android -keypass android -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=World Life, O=World-Life-Server, C=TH"
+          "$BUILD_TOOLS/apksigner" sign --ks world-life-debug.keystore \
+            --ks-pass pass:android --key-pass pass:android \
+            --out World-Life-0.1-Server-Connected.apk world-life-master-aligned.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose World-Life-0.1-Server-Connected.apk
+          ls -lh World-Life-0.1-Server-Connected.apk
+
+      - name: Upload playable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: World-Life-0.1-Server-Connected
+          path: World-Life-0.1-Server-Connected.apk
+          retention-days: 14
