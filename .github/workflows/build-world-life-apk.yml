@@ -2,6 +2,8 @@ name: Build World Life Master APK
 
 on:
   push:
+    paths:
+      - .github/workflows/build-world-life-apk.yml
   workflow_dispatch:
 
 jobs:
@@ -88,7 +90,7 @@ jobs:
       - name: Decode original Master
         run: |
           set -e
-          apktool d -f -o decoded master.apk
+          apktool d -f --no-src -o decoded master.apk
           test -f decoded/AndroidManifest.xml
           test -f decoded/lib/armeabi/libKyotoLife.so
 
@@ -138,313 +140,188 @@ jobs:
           p.write_text(s)
           PY
 
-      - name: Build World Life Email/Gmail login bridge
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p login-src login-classes login-dex /tmp/baksmali /tmp/login-smali
-          cat > login-src/WorldLifeLoginActivity.java <<'JAVA'
-package com.nubee.japanlife;
-import android.app.Activity;
-import android.os.Bundle;
-import android.graphics.Color;
-import android.view.View;
-import android.widget.*;
-import org.json.*;
-import java.io.*;
-import java.net.*;
-import java.nio.charset.Charset;
-import java.util.Locale;
-public final class WorldLifeLoginActivity extends Activity {
-  private static final String SUPA="https://hgsugqaswxxkrsalvkci.supabase.co";
-  private static final String KEY="sb_publishable_6WqK57tB2wTsEivhoAlQCA_9xOlyehA";
-  EditText email,pass; TextView msg;
-  @Override public void onCreate(Bundle b){super.onCreate(b); build();}
-  private void build(){
-    LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(32,24,32,24); root.setBackgroundColor(Color.WHITE);
-    TextView title=new TextView(this); title.setText("🦆 World Life"); title.setTextSize(28); title.setTextColor(Color.rgb(30,100,50));
-    TextView sub=new TextView(this); sub.setText("เข้าสู่ระบบ World Life ด้วยอีเมล / Gmail"); sub.setTextSize(16);
-    email=new EditText(this); email.setHint("อีเมล"); email.setInputType(33);
-    pass=new EditText(this); pass.setHint("รหัสผ่าน"); pass.setInputType(129);
-    LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL);
-    Button sign=new Button(this); sign.setText("เข้าสู่ระบบ"); Button reg=new Button(this); reg.setText("สมัครสมาชิก");
-    row.addView(sign,new LinearLayout.LayoutParams(0,-2,1)); row.addView(reg,new LinearLayout.LayoutParams(0,-2,1));
-    msg=new TextView(this); msg.setTextSize(15); msg.setPadding(0,18,0,0);
-    root.addView(title);root.addView(sub);root.addView(email);root.addView(pass);root.addView(row);root.addView(msg);setContentView(root);
-    sign.setOnClickListener(v->auth(false)); reg.setOnClickListener(v->auth(true));
-  }
-  private void auth(boolean signup){ final String e=email.getText().toString().trim().toLowerCase(Locale.US), p=pass.getText().toString(); if(e.length()<3||p.length()<6){say("กรุณาตรวจสอบอีเมลและรหัสผ่าน");return;} say("กำลังเชื่อมต่อ World Life Server...");
-    new Thread(()->{try{
-      if(signup){ post(SUPA+"/auth/v1/signup","{\"email\":"+JSONObject.quote(e)+",\"password\":"+JSONObject.quote(p)+"}",null); runOnUiThread(()->say("สมัครแล้ว กรุณายืนยันอีเมล แล้วรอเจ้าของอนุมัติบัญชีก่อนเข้าเกม")); return; }
-      JSONObject tok=post(SUPA+"/auth/v1/token?grant_type=password","{\"email\":"+JSONObject.quote(e)+",\"password\":"+JSONObject.quote(p)+"}",null);
-      String access=tok.optString("access_token",""); String uid=tok.optJSONObject("user")!=null?tok.getJSONObject("user").optString("id",""):"";
-      if(access.length()<10||uid.length()<10)throw new Exception(tok.optString("msg",tok.optString("error_description","login failed")));
-      JSONObject prof=get(SUPA+"/rest/v1/profiles?id=eq."+URLEncoder.encode(uid,"UTF-8")+"&select=status,role,email",access);
-      JSONArray a=prof.optJSONArray("array"); String status="pending",role="player"; if(a!=null&&a.length()>0){JSONObject z=a.getJSONObject(0);status=z.optString("status","pending");role=z.optString("role","player");}
-      if(!"approved".equals(status)){final String s=status;runOnUiThread(()->say("บัญชีสถานะ: "+s+" — ยังไม่สามารถเข้าเกมได้"));return;}
-      long gameId=stableId(uid); getSharedPreferences("worldlife_auth",0).edit().putBoolean("approved",true).putLong("uid",gameId).putString("email",e).putString("name",e.substring(0,e.indexOf('@'))).putString("role",role).apply();
-      runOnUiThread(()->{say("เข้าสู่ระบบสำเร็จ กำลังเข้าเกม...");setResult(RESULT_OK);finish();});
-    }catch(Exception ex){final String s=ex.getMessage()==null?"เชื่อมต่อไม่สำเร็จ":ex.getMessage();runOnUiThread(()->say(s));}}).start();
-  }
-  private void say(String s){msg.setText(s);}
-  private static long stableId(String s){long h=1125899906842597L;for(int i=0;i<s.length();i++)h=31*h+s.charAt(i);h&=0x7fffffffffffffffL;return h==0?1:h;}
-  private static JSONObject post(String u,String body,String bearer)throws Exception{return req(u,"POST",body,bearer);}
-  private static JSONObject get(String u,String bearer)throws Exception{return req(u,"GET",null,bearer);}
-  private static JSONObject req(String u,String method,String body,String bearer)throws Exception{HttpURLConnection c=(HttpURLConnection)new URL(u).openConnection();c.setConnectTimeout(15000);c.setReadTimeout(20000);c.setRequestMethod(method);c.setRequestProperty("apikey",KEY);c.setRequestProperty("Accept","application/json");if(bearer!=null)c.setRequestProperty("Authorization","Bearer "+bearer);if(body!=null){c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json");byte[] b=body.getBytes(Charset.forName("UTF-8"));c.setFixedLengthStreamingMode(b.length);try(OutputStream o=c.getOutputStream()){o.write(b);}}int code=c.getResponseCode();InputStream in=code>=400?c.getErrorStream():c.getInputStream();StringBuilder s=new StringBuilder();if(in!=null){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1)s.append(new String(b,0,n,"UTF-8"));in.close();}if(code<200||code>=300)throw new IOException("Server "+code+": "+s.toString());String out=s.toString();if(out.startsWith("[")){JSONObject z=new JSONObject();z.put("array",new JSONArray(out));return z;}return new JSONObject(out);}
-}
-JAVA
-          javac -source 8 -target 8 -cp "$ANDROID_JAR" -d login-classes login-src/WorldLifeLoginActivity.java
-          "$D8" --min-api 16 --lib "$ANDROID_JAR" --output login-dex login-classes
-          curl -fL --retry 3 -o /tmp/baksmali.jar https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar
-          java -jar /tmp/baksmali.jar d login-dex/classes.dex -o /tmp/login-smali
-          mkdir -p decoded/smali/com/nubee/japanlife
-          cp /tmp/login-smali/com/nubee/japanlife/WorldLifeLoginActivity*.smali decoded/smali/com/nubee/japanlife/
-
-      - name: Replace native Social Login Java bridge
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p=Path("decoded/smali/com/nubee/FBConnect/FacebookMgr.smali")
-          s=p.read_text()
-          methods={
-          "Initialise":"""    .method public static Initialise(Landroid/app/Activity;)Z
-              .locals 1
-              sput-object p0, Lcom/nubee/FBConnect/FacebookMgr;->context:Landroid/app/Activity;
-              invoke-static {}, Lcom/nubee/japanlife/WorldLifeProxy;->start()V
-              const/4 v0, 0x1
-              return v0
-          .end method""",
-          "Login":"""    .method public static Login(Z)V
-              .locals 3
-              if-eqz p0, :ret
-              sget-object v0, Lcom/nubee/FBConnect/FacebookMgr;->context:Landroid/app/Activity;
-              if-eqz v0, :ret
-              new-instance v1, Landroid/content/Intent;
-              const-class v2, Lcom/nubee/japanlife/WorldLifeLoginActivity;
-              invoke-direct {v1, v0, v2}, Landroid/content/Intent;-><init>(Landroid/content/Context;Ljava/lang/Class;)V
-              invoke-virtual {v0, v1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
-          :ret
-              return-void
-          .end method""",
-          "AuthorizeCallback":"""    .method public static AuthorizeCallback(IILandroid/content/Intent;)V
-              .locals 0
-              return-void
-          .end method""",
-          "GetUserInformation":"""    .method public static GetUserInformation()V
-              .locals 4
-              sget-object v0, Lcom/nubee/FBConnect/FacebookMgr;->context:Landroid/app/Activity;
-              if-eqz v0, :fail
-              const-string v1, "worldlife_auth"
-              const/4 v2, 0x0
-              invoke-virtual {v0, v1, v2}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-              move-result-object v1
-              const-string v2, "approved"
-              const/4 v3, 0x0
-              invoke-interface {v1, v2, v3}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
-              move-result v2
-              if-eqz v2, :fail
-              const/4 v3, 0x0
-              invoke-static {v3}, Lcom/nubee/FBConnect/FacebookMgr;->FBCallback(I)V
-              return-void
-          :fail
-              const/4 v3, 0x7
-              invoke-static {v3}, Lcom/nubee/FBConnect/FacebookMgr;->FBCallback(I)V
-              return-void
-          .end method""",
-          "GetUserID":"""    .method public static GetUserID()J
-              .locals 4
-              sget-object v0, Lcom/nubee/FBConnect/FacebookMgr;->context:Landroid/app/Activity;
-              if-eqz v0, :zero
-              const-string v1, "worldlife_auth"
-              const/4 v2, 0x0
-              invoke-virtual {v0, v1, v2}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-              move-result-object v3
-              const-string v2, "uid"
-              const-wide/16 v0, 0x0
-              invoke-interface {v3, v2, v0, v1}, Landroid/content/SharedPreferences;->getLong(Ljava/lang/String;J)J
-              move-result-wide v0
-              return-wide v0
-          :zero
-              const-wide/16 v0, 0x0
-              return-wide v0
-          .end method""",
-          "GetName":"""    .method public static GetName()Ljava/lang/String;
-              .locals 3
-              sget-object v0, Lcom/nubee/FBConnect/FacebookMgr;->context:Landroid/app/Activity;
-              if-eqz v0, :empty
-              const-string v1, "worldlife_auth"
-              const/4 v2, 0x0
-              invoke-virtual {v0, v1, v2}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-              move-result-object v1
-              const-string v2, "name"
-              const-string v0, "World Life Player"
-              invoke-interface {v1, v2, v0}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-              move-result-object v0
-              return-object v0
-          :empty
-              const-string v0, "World Life Player"
-              return-object v0
-          .end method""",
-          "IsSessionValid":"""    .method public static IsSessionValid()Z
-              .locals 3
-              sget-object v0, Lcom/nubee/FBConnect/FacebookMgr;->context:Landroid/app/Activity;
-              if-eqz v0, :no
-              const-string v1, "worldlife_auth"
-              const/4 v2, 0x0
-              invoke-virtual {v0, v1, v2}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-              move-result-object v1
-              const-string v2, "approved"
-              const/4 v0, 0x0
-              invoke-interface {v1, v2, v0}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
-              move-result v0
-              return v0
-          :no
-              const/4 v0, 0x0
-              return v0
-          .end method"""
-          ,
-          "Logout":"""    .method public static Logout()V
-              .locals 3
-              sget-object v0, Lcom/nubee/FBConnect/FacebookMgr;->context:Landroid/app/Activity;
-              if-eqz v0, :done
-              const-string v1, "worldlife_auth"
-              const/4 v2, 0x0
-              invoke-virtual {v0, v1, v2}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-              move-result-object v1
-              invoke-interface {v1}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
-              move-result-object v1
-              invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->clear()Landroid/content/SharedPreferences$Editor;
-              move-result-object v1
-              invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
-          :done
-              return-void
-          .end method"""
-          }
-          for name,new in methods.items():
-              pat=r'(?ms)^\s*\.method [^\n]*\s'+re.escape(name)+r'\([^\n]*\).*?^\s*\.end method'
-              m=re.search(pat,s)
-              if not m: raise SystemExit("missing method "+name)
-              s=s[:m.start()]+"\n"+new+s[m.end():]
-          p.write_text(s)
-          PY
-
-      - name: Remove obsolete social-login UI declarations
-        shell: bash
+      - name: Build embedded local gateway proxy
         run: |
           set -e
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path("decoded/AndroidManifest.xml"); s=p.read_text()
-          import re
-          s=re.sub(r'\s*<activity[^>]+com\.renren\.[^>]+/>','',s)
-          s=re.sub(r'\s*<activity[^>]+com\.tencent\.tauth\.[^>]+>.*?</activity>','',s,flags=re.S)
-          s=s.replace('<uses-permission android:name="android.permission.GET_ACCOUNTS"/>','')
-          s=s.replace('<uses-permission android:name="android.permission.MANAGE_ACCOUNTS"/>','')
-          provider='<activity android:configChanges="keyboardHidden|orientation" android:exported="false" android:name=".WorldLifeLoginActivity" android:screenOrientation="portrait"/>'
-          assert 'WorldLifeLoginActivity' in s or '</application>' in s
-          s=s.replace('</application>',provider+'\n</application>',1)
-          p.write_text(s)
-          PY
-
-      - name: Build lazy local gateway proxy
-        run: |
-          set -euo pipefail
           mkdir -p proxy-src proxy-classes proxy-dex
-          cat > proxy-src/WorldLifeProxy.java <<'JAVA'
+          cat > proxy-src/WorldLifeProxyProvider.java <<'JAVA'
           package com.nubee.japanlife;
+
+          import android.content.ContentProvider;
+          import android.content.ContentValues;
+          import android.database.Cursor;
+          import android.net.Uri;
+          import android.os.ParcelFileDescriptor;
+
           import java.io.*;
           import java.net.*;
           import java.util.*;
-          public final class WorldLifeProxy {
-              private static final int PORT=8765;
-              private static final String UPSTREAM="https://worldlife-gateway.bomsronthai.workers.dev";
+          
+
+          public final class WorldLifeProxyProvider extends ContentProvider {
+              private static final int PORT = 8765;
+              private static final String UPSTREAM = "https://worldlife-gateway.bomsronthai.workers.dev";
               private static volatile boolean started;
-              public static synchronized void start(){
-                  if(started)return; started=true;
-                  Thread t=new Thread(new Runnable(){public void run(){serve();}},"WorldLifeProxy");
-                  t.setDaemon(true); t.start();
+
+              @Override public boolean onCreate() {
+                  if (!started) {
+                      started = true;
+                      Thread t = new Thread(new Runnable() { public void run() { serve(); } }, "WorldLifeProxy");
+                      t.setDaemon(true);
+                      t.start();
+                  }
+                  return true;
               }
-              private static void serve(){
-                  try{
-                      ServerSocket ss=new ServerSocket();
+
+              private static void serve() {
+                  try (ServerSocket ss = new ServerSocket()) {
                       ss.setReuseAddress(true);
-                      ss.bind(new InetSocketAddress(InetAddress.getByName("127.0.0.1"),PORT));
-                      while(true){
-                          final Socket client=ss.accept();
-                          Thread w=new Thread(new Runnable(){public void run(){handle(client);}},"WorldLifeProxyClient");
-                          w.setDaemon(true); w.start();
+                      ss.bind(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT));
+                      while (true) {
+                          final Socket client = ss.accept();
+                          Thread worker = new Thread(new Runnable() {
+                              @Override public void run() { handle(client); }
+                          }, "WorldLifeProxyClient");
+                          worker.setDaemon(true);
+                          worker.start();
                       }
-                  }catch(Throwable ignored){}
+                  } catch (Throwable ignored) {}
               }
-              private static void handle(Socket s){
-                  try{
-                      s.setSoTimeout(30000);
-                      BufferedInputStream in=new BufferedInputStream(s.getInputStream());
-                      OutputStream out=s.getOutputStream();
+
+              private static void handle(Socket s) {
+                  try (Socket sock=s) {
+                      sock.setSoTimeout(30000);
+                      BufferedInputStream in=new BufferedInputStream(sock.getInputStream());
+                      OutputStream out=sock.getOutputStream();
+
                       String requestLine=readLine(in);
-                      if(requestLine==null||requestLine.length()==0)return;
+                      if(requestLine==null || requestLine.length()==0) return;
                       String[] rp=requestLine.split(" ");
-                      if(rp.length<2)return;
-                      String method=rp[0],path=rp[1];
-                      Map<String,String> headers=new LinkedHashMap<String,String>();
+                      if(rp.length<2) return;
+                      String method=rp[0];
+                      String path=rp[1];
+
+                      Map<String,String> headers=new LinkedHashMap<>();
                       String line;
-                      while((line=readLine(in))!=null&&!line.isEmpty()){
-                          int c=line.indexOf(':'); if(c>0)headers.put(line.substring(0,c).trim(),line.substring(c+1).trim());
+                      while((line=readLine(in))!=null && !line.isEmpty()){
+                          int c=line.indexOf(':');
+                          if(c>0) headers.put(line.substring(0,c).trim(),line.substring(c+1).trim());
                       }
-                      int len=0; try{len=Integer.parseInt(headers.containsKey("Content-Length")?headers.get("Content-Length"):"0");}catch(Exception ignored){}
-                      byte[] body=new byte[len]; int got=0;
-                      while(got<len){int n=in.read(body,got,len-got);if(n<0)break;got+=n;}
+
+                      int len=0;
+                      try { len=Integer.parseInt(headers.getOrDefault("Content-Length","0")); } catch(Exception ignored){}
+                      byte[] body=new byte[len];
+                      int got=0;
+                      while(got<len){
+                          int n=in.read(body,got,len-got);
+                          if(n<0) break;
+                          got+=n;
+                      }
+
                       String upstreamUrl;
                       if(path.startsWith("/resource/")){
-                          upstreamUrl="https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-resources/"+path.substring(10);
-                      }else{
-                          String upstreamPath=path;
-                          if(!(path.startsWith("/shop/")||path.startsWith("/legacy/")||path.startsWith("/legacy-api-full/")))upstreamPath="/legacy"+path;
-                          upstreamUrl=UPSTREAM+upstreamPath;
+                          String name = path.substring("/resource/".length());
+                          upstreamUrl = "https://hgsugqaswxxkrsalvkci.supabase.co/storage/v1/object/public/world-life-master/" + name;
+                      } else {
+                          String upstreamPath = path;
+                          if(!(path.startsWith("/shop/") || path.startsWith("/legacy/") || path.startsWith("/legacy-api-full/"))){
+                              upstreamPath = "/legacy" + path;
+                          }
+                          upstreamUrl = UPSTREAM + upstreamPath;
                       }
-                      HttpURLConnection c=(HttpURLConnection)new URL(upstreamUrl).openConnection();
-                      c.setConnectTimeout(15000); c.setReadTimeout(30000); c.setRequestMethod(method); c.setInstanceFollowRedirects(true);
+                      URL u=new URL(upstreamUrl);
+                      HttpURLConnection c=(HttpURLConnection)u.openConnection();
+                      c.setConnectTimeout(15000);
+                      c.setReadTimeout(30000);
+                      c.setRequestMethod(method);
+                      c.setInstanceFollowRedirects(true);
                       for(Map.Entry<String,String> e:headers.entrySet()){
                           String k=e.getKey();
-                          if(k.equalsIgnoreCase("Host")||k.equalsIgnoreCase("Connection")||k.equalsIgnoreCase("Content-Length")||k.equalsIgnoreCase("Transfer-Encoding"))continue;
+                          if(k.equalsIgnoreCase("Host") || k.equalsIgnoreCase("Connection") ||
+                             k.equalsIgnoreCase("Content-Length")) continue;
+                          if(k.equalsIgnoreCase("Transfer-Encoding")) continue;
                           c.setRequestProperty(k,e.getValue());
                       }
-                      if(len>0&&!method.equalsIgnoreCase("GET")&&!method.equalsIgnoreCase("HEAD")){
-                          c.setDoOutput(true); c.setFixedLengthStreamingMode(len);
-                          OutputStream co=c.getOutputStream(); try{co.write(body);}finally{co.close();}
+                      if(len>0 && !method.equalsIgnoreCase("GET") && !method.equalsIgnoreCase("HEAD")){
+                          c.setDoOutput(true);
+                          c.setFixedLengthStreamingMode(len);
+                          try(OutputStream co=c.getOutputStream()){co.write(body);}
                       }
-                      int code=c.getResponseCode(); String msg=c.getResponseMessage();
+
+                      int code=c.getResponseCode();
+                      String msg=c.getResponseMessage();
                       out.write(("HTTP/1.1 "+code+" "+(msg==null?"OK":msg)+"\r\n").getBytes("ISO-8859-1"));
-                      String ct=c.getHeaderField("Content-Type"); if(ct!=null)out.write(("Content-Type: "+ct+"\r\n").getBytes("ISO-8859-1"));
-                      String ce=c.getHeaderField("Content-Encoding"); if(ce!=null)out.write(("Content-Encoding: "+ce+"\r\n").getBytes("ISO-8859-1"));
-                      String cl=c.getHeaderField("Content-Length"); if(cl!=null)out.write(("Content-Length: "+cl+"\r\n").getBytes("ISO-8859-1"));
-                      InputStream cin; try{cin=c.getInputStream();}catch(IOException ex){cin=c.getErrorStream();}
+
+                      String ct=c.getHeaderField("Content-Type");
+                      if(ct!=null) out.write(("Content-Type: "+ct+"\r\n").getBytes("ISO-8859-1"));
+                      String ce=c.getHeaderField("Content-Encoding");
+                      if(ce!=null) out.write(("Content-Encoding: "+ce+"\r\n").getBytes("ISO-8859-1"));
+                      String cl=c.getHeaderField("Content-Length");
+                      InputStream cin;
+                      try { cin=c.getInputStream(); } catch(IOException ex) { cin=c.getErrorStream(); }
+                      if(cl!=null) out.write(("Content-Length: "+cl+"\r\n").getBytes("ISO-8859-1"));
                       out.write("Connection: close\r\n\r\n".getBytes("ISO-8859-1"));
-                      if(cin!=null){byte[] buf=new byte[8192];int n;while((n=cin.read(buf))!=-1)out.write(buf,0,n);cin.close();}
-                      out.flush(); c.disconnect();
-                  }catch(Throwable ignored){}finally{try{s.close();}catch(Throwable ignored){}}
+                      if(cin!=null){
+                          byte[] buf=new byte[8192]; int n;
+                          while((n=cin.read(buf))!=-1) out.write(buf,0,n);
+                          cin.close();
+                      }
+                      out.flush();
+                      c.disconnect();
+                  } catch(Throwable ignored) {}
               }
-              private static String readLine(InputStream in)throws IOException{
-                  ByteArrayOutputStream b=new ByteArrayOutputStream(); int cur;
+
+              private static String readLine(InputStream in) throws IOException {
+                  ByteArrayOutputStream b=new ByteArrayOutputStream();
+                  int cur;
                   while((cur=in.read())!=-1){
-                      if(cur=='\r'){int next=in.read();if(next=='\n')break;if(next!=-1)b.write(next);break;}
-                      if(cur=='\n')break;b.write(cur);
+                      if(cur=='\r'){
+                          int next=in.read();
+                          if(next=='\n') break;
+                          if(next!=-1) b.write(next);
+                          break;
+                      }
+                      if(cur=='\n') break;
+                      b.write(cur);
                   }
-                  return b.size()==0&&cur==-1?null:new String(b.toByteArray(),"ISO-8859-1");
+                  return b.size()==0 && cur==-1 ? null : new String(b.toByteArray(),"ISO-8859-1");
               }
+              @Override public Cursor query(Uri uri,String[] p,String s,String[] a,String so){return null;}
+              @Override public String getType(Uri uri){return null;}
+              @Override public Uri insert(Uri uri,ContentValues v){return null;}
+              @Override public int delete(Uri uri,String s,String[] a){return 0;}
+              @Override public int update(Uri uri,ContentValues v,String s,String[] a){return 0;}
           }
           JAVA
-          javac -source 7 -target 7 -cp "$ANDROID_JAR" -d proxy-classes proxy-src/WorldLifeProxy.java
+          # Compile against the Android SDK and merge the proxy into every original DEX.
+          javac -source 7 -target 7 -cp "$ANDROID_JAR" -d proxy-classes proxy-src/WorldLifeProxyProvider.java
           jar cf proxy.jar -C proxy-classes .
-          rm -rf original-dex merged-dex
-          mkdir -p original-dex merged-dex
+          rm -rf original-dex merged-dex && mkdir original-dex merged-dex
           unzip -q master.apk "classes*.dex" -d original-dex
           "$D8" --min-api 16 --lib "$ANDROID_JAR" --output merged-dex original-dex/*.dex proxy.jar
           rm -f decoded/classes*.dex
           cp merged-dex/classes*.dex decoded/
+
+      - name: Register startup provider
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("decoded/AndroidManifest.xml")
+          s=p.read_text(encoding="utf-8")
+          marker="</application>"
+          provider='<provider android:name="com.nubee.japanlife.WorldLifeProxyProvider" android:authorities="com.nubee.japanlife.worldlife.proxy" android:exported="false" android:initOrder="1000" />'
+          assert marker in s
+          assert provider not in s
+          s=s.replace(marker, provider+"\n"+marker, 1)
+          p.write_text(s,encoding="utf-8")
+          PY
+
+      - name: Verify manifest contains World Life native bridge provider
+        run: |
+          set -e
+          grep -q "WorldLifeProxyProvider" decoded/AndroidManifest.xml
+          echo "Native bridge provider registered"
 
       - name: Rebuild, align and sign
         run: |
