@@ -3,7 +3,7 @@ export async function onRequest(context) {
 
   if (incoming.pathname === "/android/BeeGameLauncher.html") {
     return new Response(
-      "<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body></body></html>",
+      '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body></body></html>',
       {
         status: 200,
         headers: {
